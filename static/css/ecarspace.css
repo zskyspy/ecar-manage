@@ -563,3 +563,17 @@ body {
     font-weight: 700;
     letter-spacing: -0.02em;
 }
+
+/* HTMX Top Progress Bar for Seamless Navigation */
+.htmx-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: #2563eb;
+    z-index: 99999;
+    opacity: 0;
+    transition: width 0.25s ease, opacity 0.25s ease;
+    pointer-events: none;
+}
