@@ -3,3 +3,5 @@ django-environ
 psycopg2-binary
 djangorestframework>=3.15.0
 djangorestframework-simplejwt>=5.3.0
+django-filter>=24.0
+

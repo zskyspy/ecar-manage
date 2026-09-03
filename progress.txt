@@ -65,9 +65,32 @@ Started: 2026-09-03
 - Seeded dev users: owner (role: owner) and tech (role: technician)
 - Live manual verification via REST requests: confirmed token generation, payload decoding, 200 on matching role, and 403 on mismatched role
 
+[2026-09-03] Step 5: Core Job CRUD
+- Added django-filter to requirements.txt and installed in venv (v26.1)
+- Added django_filters to INSTALLED_APPS and configured DEFAULT_FILTER_BACKENDS (DjangoFilterBackend, SearchFilter, OrderingFilter) in settings.py
+- Created Job model in jobs/models.py with fields: customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, license_plate, vin, description, status (Status choices: pending, in_progress, waiting_parts, completed, cancelled), assigned_technician, created_by, timestamps
+- Registered Job and JobAdmin in jobs/admin.py with list_display, list_filter, search_fields, and ordering
+- Created JobFilter in jobs/filters.py with exact and case-insensitive filter lookups
+- Created JobSerializer in jobs/serializers.py with read-only audit fields and assigned technician / creator usernames
+- Implemented JobViewSet in jobs/views.py with search, ordering, filter backends, and automatic created_by binding on create
+- Registered JobViewSet with DRF DefaultRouter under /api/jobs/
+- Generated and applied migration jobs/migrations/0002_job.py
+- Added 7 automated tests in jobs/tests.py (12 total in suite):
+  * test_create_job (POST /api/jobs/)
+  * test_list_jobs (GET /api/jobs/)
+  * test_retrieve_job (GET /api/jobs/{id}/)
+  * test_partial_update_job (PATCH /api/jobs/{id}/)
+  * test_delete_job (DELETE /api/jobs/{id}/)
+  * test_filter_jobs_by_status (?status=in_progress)
+  * test_search_jobs (?search=...)
+- Ran manage.py test jobs — all 12/12 tests passed on PostgreSQL
+- Live manual verification via REST requests: confirmed POST /api/jobs/, GET /api/jobs/{id}/, PATCH /api/jobs/{id}/, and query filtering with JWT auth
+
 Notes / decisions
 - Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
 - PostgreSQL 18 used instead of 16 (what the installer provided)
 - DB password is only in .env, never in progress.txt or settings.py
 - Role access control enforced at the permission/backend layer via IsOwner / IsTechnician
+- Job CRUD routes live under /api/jobs/ with DRF DefaultRouter
+
 

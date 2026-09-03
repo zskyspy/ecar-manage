@@ -1,13 +1,20 @@
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .filters import JobFilter
+from .models import Job
 from .permissions import IsOwner, IsTechnician
-from .serializers import CustomTokenObtainPairSerializer, UserSerializer
+from .serializers import (
+    CustomTokenObtainPairSerializer,
+    JobSerializer,
+    UserSerializer,
+)
+
 
 
 def health(request):
@@ -52,4 +59,20 @@ class TechnicianOnlyTestView(APIView):
             {"message": f"Hello Technician {request.user.username}, access granted.", "role": request.user.profile.role},
             status=status.HTTP_200_OK,
         )
+
+
+class JobViewSet(viewsets.ModelViewSet):
+    queryset = Job.objects.all().select_related("assigned_technician", "created_by")
+    serializer_class = JobSerializer
+    filterset_class = JobFilter
+    search_fields = ["customer_name", "license_plate", "vehicle_make", "vehicle_model", "vin"]
+    ordering_fields = ["created_at", "updated_at", "status"]
+    ordering = ["-created_at"]
+
+    def perform_create(self, serializer):
+        if self.request.user.is_authenticated:
+            serializer.save(created_by=self.request.user)
+        else:
+            serializer.save()
+
 

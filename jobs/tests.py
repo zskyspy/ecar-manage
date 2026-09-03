@@ -114,3 +114,111 @@ class AuthAndRoleTests(TestCase):
         res_tech = self.client.get(url)
         self.assertEqual(res_tech.status_code, status.HTTP_200_OK)
         self.assertIn("access granted", res_tech.data["message"])
+
+
+class JobCrudTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="test_user",
+            password="Password123!",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.job_data = {
+            "customer_name": "Alice Smith",
+            "customer_phone": "07123456789",
+            "vehicle_make": "Ford",
+            "vehicle_model": "Focus",
+            "vehicle_year": 2019,
+            "license_plate": "AB19 CDE",
+            "vin": "WF0AXXWPGAY123456",
+            "description": "Brake pads replacement and oil change",
+            "status": "pending",
+        }
+
+    def test_create_job(self):
+        """Verify POST /api/jobs/ creates a job with created_by set to request.user."""
+        url = reverse("job-list")
+        response = self.client.post(url, self.job_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["customer_name"], "Alice Smith")
+        self.assertEqual(response.data["license_plate"], "AB19 CDE")
+        self.assertEqual(response.data["created_by_name"], "test_user")
+
+    def test_list_jobs(self):
+        """Verify GET /api/jobs/ lists all jobs."""
+        from .models import Job
+
+        Job.objects.create(created_by=self.user, **self.job_data)
+        url = reverse("job-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_retrieve_job(self):
+        """Verify GET /api/jobs/{id}/ returns single job details."""
+        from .models import Job
+
+        job = Job.objects.create(created_by=self.user, **self.job_data)
+        url = reverse("job-detail", kwargs={"pk": job.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], job.id)
+        self.assertEqual(response.data["vehicle_model"], "Focus")
+
+    def test_partial_update_job(self):
+        """Verify PATCH /api/jobs/{id}/ updates status and fields."""
+        from .models import Job
+
+        job = Job.objects.create(created_by=self.user, **self.job_data)
+        url = reverse("job-detail", kwargs={"pk": job.id})
+        update_data = {"status": "in_progress", "description": "Brake pads completed, working on oil"}
+        response = self.client.patch(url, update_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "in_progress")
+        self.assertEqual(response.data["description"], "Brake pads completed, working on oil")
+
+    def test_delete_job(self):
+        """Verify DELETE /api/jobs/{id}/ removes the job."""
+        from .models import Job
+
+        job = Job.objects.create(created_by=self.user, **self.job_data)
+        url = reverse("job-detail", kwargs={"pk": job.id})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Job.objects.filter(id=job.id).exists())
+
+    def test_filter_jobs_by_status(self):
+        """Verify filtering jobs by ?status=in_progress."""
+        from .models import Job
+
+        job_pending = dict(self.job_data)
+        job_pending["status"] = Job.Status.PENDING
+        Job.objects.create(**job_pending)
+
+        job_in_prog = dict(self.job_data)
+        job_in_prog["status"] = Job.Status.IN_PROGRESS
+        job_in_prog["license_plate"] = "XY20 ZZZ"
+        Job.objects.create(**job_in_prog)
+
+        url = f"{reverse('job-list')}?status=in_progress"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["license_plate"], "XY20 ZZZ")
+
+    def test_search_jobs(self):
+        """Verify searching jobs by ?search=..."""
+        from .models import Job
+
+        job_search = dict(self.job_data)
+        job_search["customer_name"] = "Robert Taylor"
+        Job.objects.create(**job_search)
+
+        url = f"{reverse('job-list')}?search=Robert"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["customer_name"], "Robert Taylor")
+
