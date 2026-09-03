@@ -641,6 +641,74 @@ class OwnerEditTechnicianView(OwnerRequiredMixin, View):
         })
 
 
+# ---------------------------------------------------------------------------
+# Technician Self-Service Settings Views
+# ---------------------------------------------------------------------------
+
+class TechnicianSettingsView(TechnicianRequiredMixin, View):
+    """Technician Settings: Update username, email, phone number."""
+
+    template_name = "jobs/tech_settings.html"
+
+    def get(self, request):
+        from .forms import TechnicianProfileForm
+
+        profile_form = TechnicianProfileForm(
+            current_user=request.user,
+            initial={
+                "username": request.user.username,
+                "email": request.user.email,
+                "phone_number": getattr(request.user.profile, "phone_number", ""),
+            },
+        )
+        password_form = PasswordChangeForm(request.user)
+
+        return render(request, self.template_name, {
+            "profile_form": profile_form,
+            "password_form": password_form,
+        })
+
+    def post(self, request):
+        from .forms import TechnicianProfileForm
+
+        form = TechnicianProfileForm(request.POST, current_user=request.user)
+        if form.is_valid():
+            request.user.username = form.cleaned_data["username"]
+            request.user.email = form.cleaned_data["email"]
+            request.user.save()
+
+            profile = request.user.profile
+            profile.phone_number = form.cleaned_data["phone_number"]
+            profile.save()
+
+            messages.success(request, "Your profile details have been updated successfully.")
+            return redirect("tech_settings")
+
+        password_form = PasswordChangeForm(request.user)
+        return render(request, self.template_name, {
+            "profile_form": form,
+            "password_form": password_form,
+        })
+
+
+class TechnicianPasswordChangeView(TechnicianRequiredMixin, View):
+    """POST-only: Update technician password securely."""
+
+    def post(self, request):
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Your password has been changed successfully.")
+            return redirect("tech_settings")
+
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
+        return redirect("tech_settings")
+
+
+
 
 
 

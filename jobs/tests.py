@@ -1243,6 +1243,99 @@ class OwnerSettingsAndTechManagementTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class TechnicianSettingsTests(TestCase):
+    """Tests for Technician self-service settings: profile update and password change."""
+
+    def setUp(self):
+        from django.test import Client
+
+        self.client = Client()
+
+        # Owner (should not access tech settings)
+        self.owner = User.objects.create_user(
+            username="tech_settings_owner",
+            password="OwnerPass123!",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Technician
+        self.tech = User.objects.create_user(
+            username="tech_self",
+            password="TechPass123!",
+            email="tech@ecarspace.local",
+        )
+        self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.department = Department.ELECTRONIC
+        self.tech.profile.phone_number = "07000000000"
+        self.tech.profile.save()
+
+    def test_tech_can_access_settings(self):
+        """Technician accessing /tech/settings/ gets 200 OK with profile and password forms."""
+        self.client.login(username="tech_self", password="TechPass123!")
+        response = self.client.get(reverse("tech_settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Technician Settings")
+        self.assertContains(response, "tech_self")
+
+    def test_owner_cannot_access_tech_settings(self):
+        """Owner accessing /tech/settings/ receives 403 Forbidden."""
+        self.client.login(username="tech_settings_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("tech_settings"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_tech_can_update_username_email_phone(self):
+        """Technician can change their own username, email, and phone."""
+        self.client.login(username="tech_self", password="TechPass123!")
+        response = self.client.post(reverse("tech_settings"), {
+            "username": "tech_renamed",
+            "email": "newemail@ecarspace.local",
+            "phone_number": "07999888777",
+        })
+        self.assertRedirects(response, reverse("tech_settings"), fetch_redirect_response=False)
+        self.tech.refresh_from_db()
+        self.assertEqual(self.tech.username, "tech_renamed")
+        self.assertEqual(self.tech.email, "newemail@ecarspace.local")
+        self.assertEqual(self.tech.profile.phone_number, "07999888777")
+
+    def test_tech_cannot_take_existing_username(self):
+        """Technician cannot rename to an existing username."""
+        self.client.login(username="tech_self", password="TechPass123!")
+        response = self.client.post(reverse("tech_settings"), {
+            "username": "tech_settings_owner",
+            "email": "tech@ecarspace.local",
+            "phone_number": "07000000000",
+        })
+        self.assertEqual(response.status_code, 200)  # Re-renders form with errors
+        self.tech.refresh_from_db()
+        self.assertEqual(self.tech.username, "tech_self")  # Unchanged
+
+    def test_tech_can_change_password(self):
+        """Technician can change their password and login with the new one."""
+        self.client.login(username="tech_self", password="TechPass123!")
+        response = self.client.post(reverse("tech_password_change"), {
+            "old_password": "TechPass123!",
+            "new_password1": "NewTechPass999!",
+            "new_password2": "NewTechPass999!",
+        })
+        self.assertRedirects(response, reverse("tech_settings"), fetch_redirect_response=False)
+        self.client.logout()
+        self.assertTrue(self.client.login(username="tech_self", password="NewTechPass999!"))
+
+    def test_tech_keeps_same_username_no_conflict(self):
+        """Technician can submit form keeping same username without uniqueness error."""
+        self.client.login(username="tech_self", password="TechPass123!")
+        response = self.client.post(reverse("tech_settings"), {
+            "username": "tech_self",
+            "email": "updated@ecarspace.local",
+            "phone_number": "07111222333",
+        })
+        self.assertRedirects(response, reverse("tech_settings"), fetch_redirect_response=False)
+        self.tech.refresh_from_db()
+        self.assertEqual(self.tech.email, "updated@ecarspace.local")
+
+
+
 
 
 

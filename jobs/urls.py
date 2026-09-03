@@ -46,6 +46,9 @@ urlpatterns = [
     path("tech/jobs/<int:pk>/", views.TechJobDetailView.as_view(), name="tech_job_detail"),
     path("tech/jobs/<int:pk>/update/", views.TechPostStatusUpdateView.as_view(), name="tech_job_status_update"),
 
+    # ---- Technician Settings ----
+    path("tech/settings/", views.TechnicianSettingsView.as_view(), name="tech_settings"),
+    path("tech/settings/password/", views.TechnicianPasswordChangeView.as_view(), name="tech_password_change"),
 
     # ---- Core Job CRUD API ----
     path("api/", include(router.urls)),

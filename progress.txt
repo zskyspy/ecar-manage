@@ -312,6 +312,23 @@ Notes / decisions
   * Added 4 new automated unit tests in OwnerSettingsAndTechManagementTests (76 tests total)
   * Ran manage.py test jobs — all 76/76 tests passed on PostgreSQL
   * Fast direct client verification (< 2s) passed: GET edit view, info update, department transfer safety unassignment, 403 security protection for technicians
+- Committed: 21e07b9
+
+[2026-09-03] Technician Self-Service Settings (Username, Password, Email, Phone)
+- TechnicianProfileForm in jobs/forms.py: Allows technician to update username (with collision validation), email, and phone number
+- TechnicianSettingsView (/tech/settings/) in jobs/views.py:
+  * Dedicated technician settings portal with department badge (⚡ Electronic Dept vs 🔧 Mechanical Dept)
+  * Profile card for username, email, and phone updates
+  * Security card for password change
+- TechnicianPasswordChangeView (/tech/settings/password/) in jobs/views.py:
+  * Secure password updates with update_session_auth_hash so technician stays logged in
+- Top Navbar (templates/base.html): Added "Settings" (gear icon) next to "Bay View" for logged-in technicians
+- Template (templates/jobs/tech_settings.html): Clean responsive layout matching ECAR Space styling
+- Verification:
+  * Added TechnicianSettingsTests (6 tests in jobs/tests.py)
+  * Ran manage.py test jobs — all 82/82 tests passed on PostgreSQL
+  * Fast direct client verification (< 2s) passed: access check, profile update, password change with re-auth, owner 403 protection
+
 
 
 

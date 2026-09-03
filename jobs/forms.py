@@ -179,3 +179,25 @@ class TechnicianEditForm(forms.Form):
     )
 
 
+class TechnicianProfileForm(forms.Form):
+    """Form for technician to edit their own username, email, and phone number."""
+
+    username = forms.CharField(max_length=150, label="Username")
+    email = forms.EmailField(required=False, label="Email Address")
+    phone_number = forms.CharField(max_length=30, required=False, label="Phone Number")
+
+    def __init__(self, *args, current_user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_user = current_user
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        qs = User.objects.filter(username__iexact=username)
+        if self.current_user:
+            qs = qs.exclude(pk=self.current_user.pk)
+        if qs.exists():
+            raise forms.ValidationError(f"Username '{username}' is already in use.")
+        return username
+
+
+
