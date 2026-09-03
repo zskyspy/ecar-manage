@@ -59,8 +59,15 @@
     </div>
 </div>
 
-<!-- Filter Bar -->
-<form method="get" class="card ecar-card rounded-3 mb-4 border-0 p-1">
+<!-- Filter Bar with Instant Auto-Filtering (No Page Reload) -->
+<form method="get"
+      action="{% url 'owner_department_jobs' department %}"
+      hx-get="{% url 'owner_department_jobs' department %}"
+      hx-trigger="change, input changed delay:250ms from:input[name='plate']"
+      hx-target="#dept-jobs-table-container"
+      hx-select="#dept-jobs-table-container"
+      hx-push-url="true"
+      class="card ecar-card rounded-3 mb-4 border-0 p-1">
     <div class="card-body p-3">
         <div class="row g-2 align-items-end">
             <div class="col-12 col-sm-4">
@@ -83,19 +90,23 @@
                 </select>
             </div>
             <div class="col-12 col-sm-3">
-                <label class="form-label stat-label mb-1">License Plate</label>
-                <input type="text" name="plate" class="form-control form-control-sm border-secondary-subtle" placeholder="e.g. BM21 WXY" value="{{ current_plate }}">
+                <label class="form-label stat-label mb-1">License Plate Instant Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted" style="font-size:0.75rem;"></i></span>
+                    <input type="text" name="plate" class="form-control form-control-sm border-start-0 border-secondary-subtle" placeholder="e.g. BM21" value="{{ current_plate }}" autocomplete="off">
+                </div>
             </div>
-            <div class="col-12 col-sm-1 d-flex gap-1">
-                <button type="submit" class="btn btn-sm btn-ecar-primary w-100" title="Apply filter"><i class="bi bi-funnel"></i></button>
-                <a href="{% url 'owner_department_jobs' department %}" class="btn btn-sm btn-ecar-secondary w-100" title="Clear filters"><i class="bi bi-x-lg"></i></a>
+            <div class="col-12 col-sm-1">
+                <a href="{% url 'owner_department_jobs' department %}" class="btn btn-sm btn-ecar-secondary w-100" title="Clear filters">
+                    <i class="bi bi-x-lg me-1"></i>Clear
+                </a>
             </div>
         </div>
     </div>
 </form>
 
-<!-- Jobs Table -->
-<div class="card ecar-card rounded-3 border-0 overflow-hidden">
+<!-- Jobs Table Container -->
+<div id="dept-jobs-table-container" class="card ecar-card rounded-3 border-0 overflow-hidden">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">

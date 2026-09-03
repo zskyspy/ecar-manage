@@ -263,8 +263,15 @@
         </div>
     </div>
 
-    <!-- Filter Bar -->
-    <form method="get" action="{% url 'owner_job_list' %}" class="row g-2 mb-4 p-3 rounded-3 bg-light border align-items-center">
+    <!-- Filter Bar with Instant Auto-Filtering (No Page Reload) -->
+    <form method="get"
+          action="{% url 'owner_job_list' %}"
+          hx-get="{% url 'owner_job_list' %}"
+          hx-trigger="change, input changed delay:250ms from:input[name='plate']"
+          hx-target="#owner-jobs-table-container"
+          hx-select="#owner-jobs-table-container"
+          hx-push-url="true"
+          class="row g-2 mb-4 p-3 rounded-3 bg-light border align-items-center">
         <!-- Department Filter -->
         <div class="col-12 col-sm-6 col-md-3">
             <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Department</label>
@@ -287,7 +294,7 @@
         </div>
 
         <!-- Technician Filter -->
-        <div class="col-12 col-sm-6 col-md-2">
+        <div class="col-12 col-sm-6 col-md-3">
             <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Technician</label>
             <select name="technician" class="form-select form-select-sm border">
                 <option value="">All Techs</option>
@@ -301,24 +308,24 @@
         </div>
 
         <!-- Plate Search -->
-        <div class="col-12 col-sm-6 col-md-3">
-            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Plate Search</label>
-            <input type="text" name="plate" class="form-control form-select-sm border mono" placeholder="e.g. AB12 CDE" value="{{ plate_query }}">
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Plate Instant Search</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted" style="font-size:0.75rem;"></i></span>
+                <input type="text" name="plate" class="form-control form-select-sm border-start-0 border mono" placeholder="e.g. AB12" value="{{ plate_query }}" autocomplete="off">
+            </div>
         </div>
 
-        <!-- Submit & Reset -->
-        <div class="col-12 col-md-1 d-flex gap-1 align-self-end">
-            <button type="submit" class="btn btn-sm btn-ecar-primary w-100 py-1" title="Apply Filter">
-                <i class="bi bi-funnel"></i>
-            </button>
-            <a href="{% url 'owner_job_list' %}" class="btn btn-sm btn-ecar-secondary border py-1" title="Reset Filters">
-                <i class="bi bi-x-lg"></i>
+        <!-- Clear Button -->
+        <div class="col-12 col-md-1 d-flex align-self-end">
+            <a href="{% url 'owner_job_list' %}" class="btn btn-sm btn-ecar-secondary border w-100 py-1" title="Clear Filters">
+                <i class="bi bi-x-lg me-1"></i>Clear
             </a>
         </div>
     </form>
 
-    <!-- Jobs Table -->
-    <div class="table-responsive">
+    <!-- Jobs Table Container -->
+    <div id="owner-jobs-table-container" class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead style="background-color: var(--bg-3); border-bottom: 1px solid var(--line);">
                 <tr>
