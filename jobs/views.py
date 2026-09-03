@@ -248,7 +248,12 @@ class OwnerDashboardView(OwnerRequiredMixin, View):
             .order_by("profile__department", "username")
         )
 
+        import datetime
+        now = datetime.datetime.now()
+        greeting_time = "Good morning" if now.hour < 12 else "Good afternoon"
+
         return render(request, self.template_name, {
+            "greeting_time": greeting_time,
             "jobs": qs,
             "total_jobs": total_jobs,
             "in_progress": in_progress,
@@ -292,6 +297,9 @@ class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
         qs = Job.objects.filter(assigned_technician=user)
         if dept:
             qs = qs.filter(department=dept)
+        import datetime
+        now = datetime.datetime.now()
+        ctx["greeting_time"] = "Good morning" if now.hour < 12 else "Good afternoon"
         ctx["jobs"] = qs.prefetch_related("status_updates").order_by("-created_at")
         ctx["department"] = dept
         ctx["department_display"] = user.profile.get_department_display() if dept else "General"
