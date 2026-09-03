@@ -246,9 +246,10 @@
             </div>
 
             <!-- Main Dynamic Page Content (Single Content Block) -->
-            <main class="container-fluid px-3 px-md-4 px-xl-5 py-3 flex-grow-1 {% if not user.is_authenticated %}d-flex align-items-center justify-content-center py-5{% endif %}">
+            <main class="container-fluid px-3 px-md-4 px-xl-5 py-3 flex-grow-1">
                 {% block content %}{% endblock %}
             </main>
+
 
             <!-- Footer -->
             <footer class="bg-white border-top py-3 text-center text-muted small mt-auto">

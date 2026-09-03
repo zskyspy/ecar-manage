@@ -38,7 +38,10 @@ def health(request):
 
 
 def home(request):
-    return HttpResponse("ECAR Space is running.")
+    """Root route: redirect authenticated users to their portal, or guests to login."""
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    return redirect("login")
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

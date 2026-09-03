@@ -55,7 +55,9 @@ body {
 
 .ecar-layout-wrapper.ecar-layout-unauth {
     flex-direction: column;
+    width: 100%;
 }
+
 
 @media (max-width: 991.98px) {
     .ecar-layout-wrapper {
@@ -341,9 +343,11 @@ body {
 .ecar-main-content {
     flex-grow: 1;
     min-width: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
 }
+
 
 .brand-title {
     font-family: 'JetBrains Mono', monospace;
