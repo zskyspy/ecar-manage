@@ -1,9 +1,10 @@
 import django_filters
-from .models import Job
+from .models import Department, Job
 
 
 class JobFilter(django_filters.FilterSet):
     status = django_filters.ChoiceFilter(choices=Job.Status.choices)
+    department = django_filters.ChoiceFilter(choices=Department.choices)
     license_plate = django_filters.CharFilter(lookup_expr="icontains")
     vehicle_make = django_filters.CharFilter(lookup_expr="icontains")
     vehicle_model = django_filters.CharFilter(lookup_expr="icontains")
@@ -15,6 +16,7 @@ class JobFilter(django_filters.FilterSet):
     class Meta:
         model = Job
         fields = [
+            "department",
             "status",
             "license_plate",
             "vehicle_make",
@@ -22,3 +24,4 @@ class JobFilter(django_filters.FilterSet):
             "assigned_technician",
             "assigned_technician_username",
         ]
+

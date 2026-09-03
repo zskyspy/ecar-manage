@@ -18,7 +18,14 @@
         <div class="card ecar-card rounded-4 border-0 p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="ecar-plate fs-6">{{ job.license_plate }}</span>
-                <span class="badge-status-{{ job.status }}">{{ job.get_status_display }}</span>
+                <div class="d-flex align-items-center gap-1">
+                    {% if job.department == 'electronic' %}
+                        <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle">ELECTRONIC</span>
+                    {% else %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle">MECHANICAL</span>
+                    {% endif %}
+                    <span class="badge-status-{{ job.status }}">{{ job.get_status_display }}</span>
+                </div>
             </div>
 
             <h4 class="fw-bold mb-1">{{ job.vehicle_make }} {{ job.vehicle_model }}</h4>

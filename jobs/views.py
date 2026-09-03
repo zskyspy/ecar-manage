@@ -90,14 +90,14 @@ class JobViewSet(viewsets.ModelViewSet):
         ):
             return Job.objects.all().select_related("assigned_technician", "created_by")
 
-        # Technicians can only view jobs assigned to them
+        # Technicians can only view jobs assigned to them within their department
         if hasattr(user, "profile") and user.profile.is_technician:
-            return Job.objects.filter(assigned_technician=user).select_related(
-                "assigned_technician", "created_by"
-            )
+            qs = Job.objects.filter(assigned_technician=user)
+            if user.profile.department:
+                qs = qs.filter(department=user.profile.department)
+            return qs.select_related("assigned_technician", "created_by")
 
         return Job.objects.none()
-
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:
@@ -112,7 +112,7 @@ class JobViewSet(viewsets.ModelViewSet):
     )
     def assign(self, request, pk=None):
         job = self.get_object()
-        serializer = JobAssignSerializer(data=request.data)
+        serializer = JobAssignSerializer(data=request.data, context={"job": job})
         serializer.is_valid(raise_exception=True)
         tech_id = serializer.validated_data.get("technician_id")
         if tech_id is None:
@@ -121,6 +121,7 @@ class JobViewSet(viewsets.ModelViewSet):
             job.assigned_technician_id = tech_id
         job.save()
         return Response(JobSerializer(job).data, status=status.HTTP_200_OK)
+
 
     @action(
         detail=True,
@@ -173,55 +174,55 @@ class DashboardRedirectView(LoginRequiredMixin, View):
 
 
 class OwnerDashboardView(OwnerRequiredMixin, View):
-    """Owner portal home: redirect straight to the job list."""
+    """Owner portal home: redirect straight to the Electronic department portal."""
 
     def get(self, request):
-        return redirect("owner_job_list")
+        return redirect("owner_department_jobs", department="electronic")
 
 
 class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
-    """Technician bay view: lists only jobs assigned to the requesting technician."""
+    """Technician bay view: lists only jobs assigned to the technician in their department."""
 
     template_name = "jobs/tech_dashboard.html"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["jobs"] = (
-            Job.objects.filter(assigned_technician=self.request.user)
-            .prefetch_related("status_updates")
-            .order_by("-created_at")
-        )
+        user = self.request.user
+        dept = getattr(user.profile, "department", None)
+        qs = Job.objects.filter(assigned_technician=user)
+        if dept:
+            qs = qs.filter(department=dept)
+        ctx["jobs"] = qs.prefetch_related("status_updates").order_by("-created_at")
+        ctx["department"] = dept
+        ctx["department_display"] = user.profile.get_department_display() if dept else "General"
         return ctx
 
 
 # ---------------------------------------------------------------------------
-# Step 11: Owner Frontend CRUD Views
+# Two-Department Owner Views (Electronic & Mechanical)
 # ---------------------------------------------------------------------------
 
-class OwnerJobListView(OwnerRequiredMixin, View):
-    """Filterable list of all jobs in the workshop."""
+class DepartmentJobListView(OwnerRequiredMixin, View):
+    """Filterable list of jobs within a specific department (electronic or mechanical)."""
 
     template_name = "jobs/job_list.html"
 
-    STATUS_BADGE = {
-        Job.Status.PENDING: "info",
-        Job.Status.IN_PROGRESS: "warning",
-        Job.Status.WAITING_PARTS: "danger",
-        Job.Status.COMPLETED: "success",
-        Job.Status.CANCELLED: "secondary",
-    }
-
-    def get(self, request):
+    def get(self, request, department="electronic"):
         from django.contrib.auth.models import User as DjangoUser
-        from .models import UserProfile
+        from .models import Department, UserProfile
+
+        if department not in (Department.ELECTRONIC, Department.MECHANICAL):
+            return redirect("owner_department_jobs", department=Department.ELECTRONIC)
+
+        dept_display = "Electronic Repair" if department == Department.ELECTRONIC else "Mechanical Repair"
 
         qs = (
-            Job.objects.all()
+            Job.objects.filter(department=department)
             .select_related("assigned_technician", "created_by")
             .order_by("-created_at")
         )
 
-        # --- filters ---
+        # Filters within this department
         status_filter = request.GET.get("status", "")
         tech_filter = request.GET.get("technician", "")
         plate_filter = request.GET.get("plate", "").strip()
@@ -235,17 +236,21 @@ class OwnerJobListView(OwnerRequiredMixin, View):
         if plate_filter:
             qs = qs.filter(license_plate__icontains=plate_filter)
 
+        # Only technicians belonging to this department
         tech_ids = UserProfile.objects.filter(
-            role=UserProfile.Role.TECHNICIAN
+            role=UserProfile.Role.TECHNICIAN,
+            department=department,
         ).values_list("user_id", flat=True)
         technicians = DjangoUser.objects.filter(id__in=tech_ids).order_by("username")
 
         return render(request, self.template_name, {
             "jobs": qs,
-            "total": Job.objects.count(),
-            "in_progress": Job.objects.filter(status=Job.Status.IN_PROGRESS).count(),
-            "waiting_parts": Job.objects.filter(status=Job.Status.WAITING_PARTS).count(),
-            "completed": Job.objects.filter(status=Job.Status.COMPLETED).count(),
+            "department": department,
+            "department_display": dept_display,
+            "total": Job.objects.filter(department=department).count(),
+            "in_progress": Job.objects.filter(department=department, status=Job.Status.IN_PROGRESS).count(),
+            "waiting_parts": Job.objects.filter(department=department, status=Job.Status.WAITING_PARTS).count(),
+            "completed": Job.objects.filter(department=department, status=Job.Status.COMPLETED).count(),
             "status_choices": Job.Status.choices,
             "technicians": technicians,
             "current_status": status_filter,
@@ -254,25 +259,42 @@ class OwnerJobListView(OwnerRequiredMixin, View):
         })
 
 
-class OwnerJobCreateView(OwnerRequiredMixin, View):
-    """Create a new repair job."""
+class DepartmentJobCreateView(OwnerRequiredMixin, View):
+    """Intake a new repair job for a specific department."""
 
     template_name = "jobs/job_create.html"
 
-    def get(self, request):
+    def get(self, request, department="electronic"):
         from .forms import JobCreateForm
-        return render(request, self.template_name, {"form": JobCreateForm()})
+        from .models import Department
+        if department not in (Department.ELECTRONIC, Department.MECHANICAL):
+            return redirect("owner_department_job_create", department=Department.ELECTRONIC)
+        dept_display = "Electronic Repair" if department == Department.ELECTRONIC else "Mechanical Repair"
+        return render(request, self.template_name, {
+            "form": JobCreateForm(department=department),
+            "department": department,
+            "department_display": dept_display,
+        })
 
-    def post(self, request):
+    def post(self, request, department="electronic"):
         from .forms import JobCreateForm
-        form = JobCreateForm(request.POST)
+        from .models import Department
+        if department not in (Department.ELECTRONIC, Department.MECHANICAL):
+            department = Department.ELECTRONIC
+        form = JobCreateForm(request.POST, department=department)
         if form.is_valid():
             job = form.save(commit=False)
+            job.department = department
             job.created_by = request.user
             job.save()
-            messages.success(request, f"Job #{job.id} created successfully.")
+            messages.success(request, f"Job #{job.id} registered under {job.get_department_display()}.")
             return redirect("owner_job_detail", pk=job.pk)
-        return render(request, self.template_name, {"form": form})
+        dept_display = "Electronic Repair" if department == Department.ELECTRONIC else "Mechanical Repair"
+        return render(request, self.template_name, {
+            "form": form,
+            "department": department,
+            "department_display": dept_display,
+        })
 
 
 class OwnerJobDetailView(OwnerRequiredMixin, View):
@@ -288,7 +310,8 @@ class OwnerJobDetailView(OwnerRequiredMixin, View):
             pk=pk,
         )
         assign_form = AssignTechnicianForm(
-            initial={"technician": job.assigned_technician}
+            initial={"technician": job.assigned_technician},
+            department=job.department,
         )
         return render(request, self.template_name, {
             "job": job,
@@ -326,7 +349,7 @@ class OwnerAssignTechnicianView(OwnerRequiredMixin, View):
     def post(self, request, pk):
         from .forms import AssignTechnicianForm
         job = get_object_or_404(Job, pk=pk)
-        form = AssignTechnicianForm(request.POST)
+        form = AssignTechnicianForm(request.POST, department=job.department)
         if form.is_valid():
             tech = form.cleaned_data["technician"]
             job.assigned_technician = tech
@@ -334,12 +357,13 @@ class OwnerAssignTechnicianView(OwnerRequiredMixin, View):
             name = tech.username if tech else "None"
             messages.success(request, f"Technician updated to: {name}.")
         else:
-            messages.error(request, "Invalid technician selection.")
+            err_msg = form.errors.get("technician", ["Invalid technician selection."])[0]
+            messages.error(request, err_msg)
         return redirect("owner_job_detail", pk=job.pk)
 
 
 # ---------------------------------------------------------------------------
-# Step 12: Technician Frontend Views
+# Technician Frontend Views (Strict Department Isolation)
 # ---------------------------------------------------------------------------
 
 class TechJobDetailView(TechnicianRequiredMixin, View):
@@ -349,10 +373,12 @@ class TechJobDetailView(TechnicianRequiredMixin, View):
 
     def get(self, request, pk):
         from .forms import StatusUpdateForm
-        # Ensure the technician can ONLY retrieve a job assigned to them
+        dept = request.user.profile.department
+        qs = Job.objects.filter(assigned_technician=request.user)
+        if dept:
+            qs = qs.filter(department=dept)
         job = get_object_or_404(
-            Job.objects.filter(assigned_technician=request.user)
-            .select_related("assigned_technician", "created_by")
+            qs.select_related("assigned_technician", "created_by")
             .prefetch_related("status_updates__technician"),
             pk=pk,
         )
@@ -369,17 +395,16 @@ class TechPostStatusUpdateView(TechnicianRequiredMixin, View):
     def post(self, request, pk):
         from .forms import StatusUpdateForm
         from .models import StatusUpdate
-        # Strictly verify job is assigned to requesting technician
-        job = get_object_or_404(
-            Job.objects.filter(assigned_technician=request.user),
-            pk=pk,
-        )
+        dept = request.user.profile.department
+        qs = Job.objects.filter(assigned_technician=request.user)
+        if dept:
+            qs = qs.filter(department=dept)
+        job = get_object_or_404(qs, pk=pk)
         form = StatusUpdateForm(request.POST)
         if form.is_valid():
             new_status = form.cleaned_data["status"]
             note = form.cleaned_data.get("note", "")
 
-            # Create status update record
             StatusUpdate.objects.create(
                 job=job,
                 status=new_status,
@@ -387,18 +412,17 @@ class TechPostStatusUpdateView(TechnicianRequiredMixin, View):
                 technician=request.user,
             )
 
-            # Sync parent job
             job.status = new_status
             job.save(update_fields=["status", "updated_at"])
 
             messages.success(request, f"Status updated to {job.get_status_display()}.")
             return redirect("tech_job_detail", pk=job.pk)
 
-        # If form is invalid, re-render detail template
         return render(request, "jobs/tech_job_detail.html", {
             "job": job,
             "form": form,
         })
+
 
 
 

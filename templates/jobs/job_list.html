@@ -1,18 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Workshop Jobs — ECAR Space{% endblock %}
+{% block title %}{{ department_display }} — ECAR Space{% endblock %}
 
 {% block content %}
-<!-- Header -->
+<!-- Department Header -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
-            <span>Workshop Jobs</span>
-        </h2>
-        <p class="text-muted small mb-0">Active vehicle repairs and bay throughput.</p>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            {% if department == 'electronic' %}
+                <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">ELECTRONIC DEPT</span>
+            {% else %}
+                <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">MECHANICAL DEPT</span>
+            {% endif %}
+            <h2 class="fw-bold mb-0">{{ department_display }}</h2>
+        </div>
+        <p class="text-muted small mb-0">
+            {% if department == 'electronic' %}
+                Diagnostics, ECU programming, module repairs, sensor wiring, and electronic calibrations.
+            {% else %}
+                Engines, transmissions, brake systems, suspension, and routine mechanical servicing.
+            {% endif %}
+        </p>
     </div>
-    <a href="{% url 'owner_job_create' %}" class="btn btn-ecar-primary">
-        <i class="bi bi-plus-lg me-1"></i> New Repair Job
+    <a href="{% url 'owner_department_job_create' department %}" class="btn btn-ecar-primary">
+        {% if department == 'electronic' %}
+            <i class="bi bi-cpu me-1"></i> + New Electronic Job
+        {% else %}
+            <i class="bi bi-gear-wide-connected me-1"></i> + New Mechanical Job
+        {% endif %}
     </a>
 </div>
 
@@ -20,7 +35,7 @@
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="card ecar-card p-3 rounded-3 border-0">
-            <div class="stat-label">Total Jobs</div>
+            <div class="stat-label">Total {{ department_display }}</div>
             <div class="stat-num mt-2">{{ total }}</div>
         </div>
     </div>
@@ -58,7 +73,7 @@
                 </select>
             </div>
             <div class="col-12 col-sm-4">
-                <label class="form-label stat-label mb-1">Filter by Technician</label>
+                <label class="form-label stat-label mb-1">Filter by Technician ({{ department_display }})</label>
                 <select name="technician" class="form-select form-select-sm border-secondary-subtle">
                     <option value="">All Technicians</option>
                     <option value="unassigned" {% if current_tech == "unassigned" %}selected{% endif %}>— Unassigned —</option>
@@ -73,7 +88,7 @@
             </div>
             <div class="col-12 col-sm-1 d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-ecar-primary w-100" title="Apply filter"><i class="bi bi-funnel"></i></button>
-                <a href="{% url 'owner_job_list' %}" class="btn btn-sm btn-ecar-secondary w-100" title="Clear filters"><i class="bi bi-x-lg"></i></a>
+                <a href="{% url 'owner_department_jobs' department %}" class="btn btn-sm btn-ecar-secondary w-100" title="Clear filters"><i class="bi bi-x-lg"></i></a>
             </div>
         </div>
     </div>

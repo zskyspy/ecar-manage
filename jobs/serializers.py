@@ -53,7 +53,10 @@ class JobSerializer(serializers.ModelSerializer):
         default=None,
         allow_null=True,
     )
-
+    department_display = serializers.CharField(
+        source="get_department_display",
+        read_only=True,
+    )
 
     class Meta:
         model = Job
@@ -67,6 +70,8 @@ class JobSerializer(serializers.ModelSerializer):
             "license_plate",
             "vin",
             "description",
+            "department",
+            "department_display",
             "status",
             "assigned_technician",
             "assigned_technician_name",
@@ -80,6 +85,7 @@ class JobSerializer(serializers.ModelSerializer):
             "created_by",
             "created_by_name",
             "assigned_technician_name",
+            "department_display",
             "created_at",
             "updated_at",
         )
@@ -100,7 +106,15 @@ class JobAssignSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f"User '{user.username}' does not have the technician role."
             )
+
+        job = self.context.get("job")
+        if job and user.profile.department != job.department:
+            raise serializers.ValidationError(
+                f"User '{user.username}' belongs to {user.profile.get_department_display()}, not {job.get_department_display()}."
+            )
+
         return value
+
 
 
 class StatusUpdateSerializer(serializers.ModelSerializer):

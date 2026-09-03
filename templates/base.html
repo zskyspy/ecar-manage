@@ -38,8 +38,13 @@
                     {% if user.is_authenticated %}
                         {% if user.profile.is_owner %}
                             <li class="nav-item">
-                                <a class="nav-link fw-medium text-dark px-3 py-1 rounded-2" href="{% url 'owner_job_list' %}">
-                                    <i class="bi bi-speedometer2 me-1 text-muted"></i>Owner Portal
+                                <a class="nav-link fw-semibold px-3 py-1 rounded-2 {% if department == 'electronic' %}active bg-light text-primary border{% else %}text-dark{% endif %}" href="{% url 'owner_department_jobs' 'electronic' %}">
+                                    <i class="bi bi-cpu me-1 text-primary"></i>Electronic Repair
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold px-3 py-1 rounded-2 {% if department == 'mechanical' %}active bg-light text-warning-emphasis border{% else %}text-dark{% endif %}" href="{% url 'owner_department_jobs' 'mechanical' %}">
+                                    <i class="bi bi-gear-wide-connected me-1 text-warning"></i>Mechanical Repair
                                 </a>
                             </li>
                         {% elif user.profile.is_technician %}
@@ -61,7 +66,7 @@
                             {% if user.profile.is_owner %}
                                 <span class="badge bg-dark text-white mono font-mono" style="font-size:0.68rem;letter-spacing:0.06em;">OWNER</span>
                             {% elif user.profile.is_technician %}
-                                <span class="badge bg-primary text-white mono font-mono" style="font-size:0.68rem;letter-spacing:0.06em;">TECH</span>
+                                <span class="badge bg-primary text-white mono font-mono" style="font-size:0.68rem;letter-spacing:0.06em;">TECH • {{ user.profile.get_department_display|default:"BAY"|upper }}</span>
                             {% endif %}
                         </li>
                         <li class="nav-item">

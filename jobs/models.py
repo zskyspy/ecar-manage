@@ -4,6 +4,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+class Department(models.TextChoices):
+    ELECTRONIC = "electronic", "Electronic Repair"
+    MECHANICAL = "mechanical", "Mechanical Repair"
+
+
 class UserProfile(models.Model):
     class Role(models.TextChoices):
         OWNER = "owner", "Owner"
@@ -19,6 +24,14 @@ class UserProfile(models.Model):
         choices=Role.choices,
         default=Role.TECHNICIAN,
     )
+    department = models.CharField(
+        max_length=20,
+        choices=Department.choices,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Department assigned to technician (Electronic or Mechanical). Owners oversee both.",
+    )
     phone_number = models.CharField(max_length=30, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -28,7 +41,8 @@ class UserProfile(models.Model):
         verbose_name_plural = "User Profiles"
 
     def __str__(self):
-        return f"{self.user.username} ({self.get_role_display()})"
+        dept = f" - {self.get_department_display()}" if self.department else ""
+        return f"{self.user.username} ({self.get_role_display()}{dept})"
 
     @property
     def is_owner(self):
@@ -37,6 +51,15 @@ class UserProfile(models.Model):
     @property
     def is_technician(self):
         return self.role == self.Role.TECHNICIAN
+
+    @property
+    def is_electronic(self):
+        return self.department == Department.ELECTRONIC
+
+    @property
+    def is_mechanical(self):
+        return self.department == Department.MECHANICAL
+
 
 
 @receiver(post_save, sender=User)
@@ -75,6 +98,14 @@ class Job(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    department = models.CharField(
+        max_length=20,
+        choices=Department.choices,
+        default=Department.MECHANICAL,
+        db_index=True,
+        help_text="Department handling this repair (Electronic or Mechanical)",
+    )
+
     assigned_technician = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

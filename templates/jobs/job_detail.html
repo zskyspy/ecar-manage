@@ -6,7 +6,7 @@
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb stat-label" style="font-size:0.75rem;">
-        <li class="breadcrumb-item"><a href="{% url 'owner_job_list' %}" class="text-decoration-none">Jobs</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'owner_department_jobs' job.department %}" class="text-decoration-none">{{ job.get_department_display }}</a></li>
         <li class="breadcrumb-item active text-dark">Job #{{ job.id }}</li>
     </ol>
 </nav>
@@ -19,7 +19,14 @@
         <div class="card ecar-card rounded-4 border-0 p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="ecar-plate fs-6">{{ job.license_plate }}</span>
-                <span class="badge-status-{{ job.status }}">{{ job.get_status_display }}</span>
+                <div class="d-flex align-items-center gap-1">
+                    {% if job.department == 'electronic' %}
+                        <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle">ELECTRONIC</span>
+                    {% else %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle">MECHANICAL</span>
+                    {% endif %}
+                    <span class="badge-status-{{ job.status }}">{{ job.get_status_display }}</span>
+                </div>
             </div>
 
             <h4 class="fw-bold mb-1">{{ job.vehicle_make }} {{ job.vehicle_model }}</h4>
@@ -27,6 +34,9 @@
 
             <div class="border-top pt-3">
                 <dl class="row mb-0 small">
+                    <dt class="col-5 stat-label mb-2">Department</dt>
+                    <dd class="col-7 fw-semibold mb-2">{{ job.get_department_display }}</dd>
+
                     <dt class="col-5 stat-label mb-2">Customer</dt>
                     <dd class="col-7 fw-medium mb-2">{{ job.customer_name }}</dd>
 
@@ -62,7 +72,8 @@
 
         <!-- Assign Technician Form -->
         <div class="card ecar-card rounded-4 border-0 p-4 mb-4">
-            <div class="stat-label mb-3">Service Bay Assignment</div>
+            <div class="stat-label mb-1">{{ job.get_department_display }} Assignment</div>
+            <p class="small text-muted mb-3" style="font-size:0.75rem;">Only technicians qualified for {{ job.get_department_display }} appear below.</p>
             {% if job.assigned_technician %}
                 <div class="d-flex align-items-center gap-2 p-2 bg-light rounded-3 mb-3 border">
                     <i class="bi bi-person-check text-primary fs-5"></i>
@@ -90,7 +101,7 @@
             <a href="{% url 'owner_job_edit' job.pk %}" class="btn btn-ecar-secondary flex-grow-1">
                 <i class="bi bi-pencil me-1"></i> Edit Job
             </a>
-            <a href="{% url 'owner_job_list' %}" class="btn btn-ecar-secondary">
+            <a href="{% url 'owner_department_jobs' job.department %}" class="btn btn-ecar-secondary" title="Back to {{ job.get_department_display }}">
                 <i class="bi bi-arrow-left"></i>
             </a>
         </div>

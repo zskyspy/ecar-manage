@@ -262,6 +262,29 @@ Notes / decisions
   * templates/jobs/tech_job_detail.html
 - Updated jobs/tests.py and views.py for brand consistency ("ECAR Space")
 - Ran targeted frontend tests (27/27 passed) and direct visual/asset check (< 1 second)
+- Committed: f08e379
+
+[2026-09-03] Two-Department Architecture: Electronic Repair & Mechanical Repair
+- Domain & Data Model:
+  * Added Department TextChoices: ELECTRONIC ("electronic", "Electronic Repair") and MECHANICAL ("mechanical", "Mechanical Repair")
+  * Added department to UserProfile: technicians assigned to either Electronic or Mechanical; owners oversee both
+  * Added department to Job: indexed column tagging which department handles the repair
+  * Created and ran migration: jobs.0004_job_department_userprofile_department
+- Strict Backend & Frontend Isolation:
+  * Technicians: Querysets strictly isolated by department in both DRF API (JobViewSet.get_queryset) and frontend views (TechnicianDashboardView, TechJobDetailView, TechPostStatusUpdateView). Attempting to query cross-department jobs returns 404 Not Found (zero data leakage)
+  * AssignTechnicianForm: Dynamically restricts technician choices to users matching job.department. Clean validation rejects any cross-department assignment attempts
+  * JobAssignSerializer: REST API validation confirms technician belongs to the job's department
+  * JobFilter: Added department filter support
+- Owner Department Portals (Navigated from Top Navbar):
+  * Navbar features two distinct department portals: ⚡ Electronic Repair (/owner/electronic/) and 🔧 Mechanical Repair (/owner/mechanical/)
+  * Each department portal features its own dedicated "+ New Electronic Job" / "+ New Mechanical Job" intake button (/owner/<dept>/create/)
+  * Department dashboards calculate stats, display technician filters, and show jobs strictly for that department
+  * Job creation automatically locks the department based on the active portal
+- Verification & Test Suite:
+  * Added TwoDepartmentTests in jobs/tests.py (8 comprehensive tests covering navigation, intake, assignment rejection, and bidirectional 404 technician isolation)
+  * Ran manage.py test jobs — all 65/65 tests passed on PostgreSQL
+  * Verified live behavior via fast direct client verification (< 2 seconds): confirmed portal switching, independent intake, cross-assignment blocking, and bidirectional 404 technician isolation
+
 
 
 

@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from .models import UserProfile
+from .models import Department, UserProfile
 
 
 class AuthAndRoleTests(TestCase):
@@ -244,6 +244,7 @@ class JobAssignmentTests(TestCase):
             password="TechPassword123!",
         )
         self.technician.profile.role = UserProfile.Role.TECHNICIAN
+        self.technician.profile.department = Department.MECHANICAL
         self.technician.profile.save()
 
         # Create another Owner
@@ -347,6 +348,7 @@ class StatusUpdateTests(TestCase):
             password="TechPassword123!",
         )
         self.assigned_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.assigned_tech.profile.department = Department.MECHANICAL
         self.assigned_tech.profile.save()
 
         # Create Unassigned Technician
@@ -355,6 +357,7 @@ class StatusUpdateTests(TestCase):
             password="TechPassword123!",
         )
         self.unassigned_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.unassigned_tech.profile.department = Department.MECHANICAL
         self.unassigned_tech.profile.save()
 
         # Create Job
@@ -486,6 +489,7 @@ class RoleScopedViewTests(TestCase):
             password="TechPassword123!",
         )
         self.tech_a.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_a.profile.department = Department.MECHANICAL
         self.tech_a.profile.save()
 
         # Create Technician B
@@ -494,6 +498,7 @@ class RoleScopedViewTests(TestCase):
             password="TechPassword123!",
         )
         self.tech_b.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_b.profile.department = Department.MECHANICAL
         self.tech_b.profile.save()
 
         from .models import Job
@@ -609,6 +614,7 @@ class FrontendViewTests(TestCase):
             username="fe_tech", password="TechFE123!"
         )
         self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.department = Department.ELECTRONIC
         self.tech.profile.save()
 
     def test_login_page_renders(self):
@@ -646,10 +652,10 @@ class FrontendViewTests(TestCase):
         self.assertRedirects(response, "/tech/", fetch_redirect_response=False)
 
     def test_owner_can_access_owner_portal(self):
-        """Owner visiting /owner/ is redirected to /owner/jobs/ (the job list)."""
+        """Owner visiting /owner/ is redirected to /owner/electronic/ (the electronic job list)."""
         self.client.login(username="fe_owner", password="OwnerFE123!")
         response = self.client.get(reverse("owner_dashboard"))
-        self.assertRedirects(response, "/owner/jobs/", fetch_redirect_response=False)
+        self.assertRedirects(response, "/owner/electronic/", fetch_redirect_response=False)
 
     def test_tech_can_access_tech_portal(self):
         """Technician visiting /tech/ gets 200 OK."""
@@ -687,6 +693,7 @@ class OwnerFrontendTests(TestCase):
         # Technician
         self.tech = User.objects.create_user(username="crud_tech", password="CrudTech1!")
         self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.department = Department.MECHANICAL
         self.tech.profile.save()
 
         # Pre-existing job
@@ -696,33 +703,34 @@ class OwnerFrontendTests(TestCase):
             vehicle_make="Ford",
             vehicle_model="Focus",
             description="Annual service",
+            department=Department.MECHANICAL,
             created_by=self.owner,
         )
         self.client.login(username="crud_owner", password="CrudOwner1!")
 
     def test_job_list_accessible_by_owner(self):
-        """GET /owner/jobs/ returns 200 for owner."""
-        response = self.client.get(reverse("owner_job_list"))
+        """GET /owner/mechanical/ returns 200 for owner."""
+        response = self.client.get(reverse("owner_department_jobs", args=["mechanical"]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "TC01 XYZ")
 
     def test_job_list_blocked_for_technician(self):
-        """GET /owner/jobs/ returns 403 for technician."""
+        """GET /owner/mechanical/ returns 403 for technician."""
         self.client.login(username="crud_tech", password="CrudTech1!")
-        response = self.client.get(reverse("owner_job_list"))
+        response = self.client.get(reverse("owner_department_jobs", args=["mechanical"]))
         self.assertEqual(response.status_code, 403)
 
     def test_job_create_get(self):
-        """GET /owner/jobs/create/ renders the create form."""
-        response = self.client.get(reverse("owner_job_create"))
+        """GET /owner/electronic/create/ renders the create form."""
+        response = self.client.get(reverse("owner_department_job_create", args=["electronic"]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Create New Repair Job")
 
     def test_job_create_post(self):
-        """POST /owner/jobs/create/ creates a job and redirects to detail."""
+        """POST /owner/electronic/create/ creates a job and redirects to detail."""
         from .models import Job
         count_before = Job.objects.count()
-        response = self.client.post(reverse("owner_job_create"), {
+        response = self.client.post(reverse("owner_department_job_create", args=["electronic"]), {
             "customer_name": "New Customer",
             "customer_phone": "07700900123",
             "license_plate": "NEW1 AAA",
@@ -732,6 +740,7 @@ class OwnerFrontendTests(TestCase):
         })
         self.assertEqual(Job.objects.count(), count_before + 1)
         new_job = Job.objects.latest("created_at")
+        self.assertEqual(new_job.department, "electronic")
         self.assertRedirects(response, reverse("owner_job_detail", args=[new_job.pk]), fetch_redirect_response=False)
 
     def test_job_detail_renders(self):
@@ -739,7 +748,7 @@ class OwnerFrontendTests(TestCase):
         response = self.client.get(reverse("owner_job_detail", args=[self.job.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "TC01 XYZ")
-        self.assertContains(response, "Status History")
+        self.assertContains(response, "Status Progression History")
 
     def test_job_edit_get(self):
         """GET /owner/jobs/<pk>/edit/ renders pre-populated form."""
@@ -756,6 +765,7 @@ class OwnerFrontendTests(TestCase):
             "vehicle_make": "Ford",
             "vehicle_model": "Focus",
             "description": "Updated description",
+            "department": "mechanical",
             "status": "in_progress",
         })
         self.job.refresh_from_db()
@@ -773,7 +783,7 @@ class OwnerFrontendTests(TestCase):
         self.assertRedirects(response, reverse("owner_job_detail", args=[self.job.pk]), fetch_redirect_response=False)
 
     def test_job_list_filter_by_status(self):
-        """GET /owner/jobs/?status=in_progress returns only in_progress jobs."""
+        """GET /owner/mechanical/?status=in_progress returns only in_progress jobs."""
         from .models import Job
         Job.objects.create(
             customer_name="Another",
@@ -782,12 +792,14 @@ class OwnerFrontendTests(TestCase):
             vehicle_model="Astra",
             description="Oil service",
             status="in_progress",
+            department=Department.MECHANICAL,
             created_by=self.owner,
         )
-        response = self.client.get(reverse("owner_job_list") + "?status=in_progress")
+        response = self.client.get(reverse("owner_department_jobs", args=["mechanical"]) + "?status=in_progress")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "IP01 BBB")
         self.assertNotContains(response, "TC01 XYZ")
+
 
 
 class TechFrontendTests(TestCase):
@@ -807,11 +819,13 @@ class TechFrontendTests(TestCase):
         # Tech A
         self.tech_a = User.objects.create_user(username="tech_a_bay", password="TechAPass123!")
         self.tech_a.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_a.profile.department = Department.ELECTRONIC
         self.tech_a.profile.save()
 
         # Tech B
         self.tech_b = User.objects.create_user(username="tech_b_bay", password="TechBPass123!")
         self.tech_b.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_b.profile.department = Department.ELECTRONIC
         self.tech_b.profile.save()
 
         # Job assigned to Tech A
@@ -821,6 +835,7 @@ class TechFrontendTests(TestCase):
             vehicle_make="Toyota",
             vehicle_model="Corolla",
             description="Brake pad replacement",
+            department=Department.ELECTRONIC,
             assigned_technician=self.tech_a,
             created_by=self.owner,
         )
@@ -832,6 +847,7 @@ class TechFrontendTests(TestCase):
             vehicle_make="Nissan",
             vehicle_model="Qashqai",
             description="Oil leak diagnosis",
+            department=Department.ELECTRONIC,
             assigned_technician=self.tech_b,
             created_by=self.owner,
         )
@@ -843,6 +859,7 @@ class TechFrontendTests(TestCase):
             vehicle_make="Vauxhall",
             vehicle_model="Corsa",
             description="Clutch issue",
+            department=Department.ELECTRONIC,
             assigned_technician=None,
             created_by=self.owner,
         )
@@ -919,6 +936,135 @@ class TechFrontendTests(TestCase):
         self.client.login(username="bay_owner", password="OwnerPass123!")
         response = self.client.get(reverse("tech_job_detail", args=[self.job_a.pk]))
         self.assertEqual(response.status_code, 403)
+
+
+class TwoDepartmentTests(TestCase):
+    """Comprehensive tests for the Two-Department Architecture (Electronic & Mechanical)."""
+
+    def setUp(self):
+        from django.test import Client
+        from .models import Job
+
+        self.client = Client()
+
+        # Owner
+        self.owner = User.objects.create_user(username="dept_owner", password="OwnerPass123!")
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Electronic Technician
+        self.elec_tech = User.objects.create_user(username="elec_tech_user", password="ElecPass123!")
+        self.elec_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.elec_tech.profile.department = Department.ELECTRONIC
+        self.elec_tech.profile.save()
+
+        # Mechanical Technician
+        self.mech_tech = User.objects.create_user(username="mech_tech_user", password="MechPass123!")
+        self.mech_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.mech_tech.profile.department = Department.MECHANICAL
+        self.mech_tech.profile.save()
+
+        # Electronic Job
+        self.elec_job = Job.objects.create(
+            customer_name="Alice Electronic",
+            license_plate="EL01 ECU",
+            vehicle_make="BMW",
+            vehicle_model="M3",
+            description="ECU tuning & sensor wiring",
+            department=Department.ELECTRONIC,
+            assigned_technician=self.elec_tech,
+            created_by=self.owner,
+        )
+
+        # Mechanical Job
+        self.mech_job = Job.objects.create(
+            customer_name="Bob Mechanical",
+            license_plate="MC02 ENG",
+            vehicle_make="Ford",
+            vehicle_model="Mustang",
+            description="V8 Engine rebuild",
+            department=Department.MECHANICAL,
+            assigned_technician=self.mech_tech,
+            created_by=self.owner,
+        )
+
+    def test_owner_navigates_electronic_portal(self):
+        """Owner visiting /owner/electronic/ sees only electronic jobs."""
+        self.client.login(username="dept_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_department_jobs", args=["electronic"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "EL01 ECU")
+        self.assertNotContains(response, "MC02 ENG")
+        self.assertContains(response, "Electronic Repair")
+
+    def test_owner_navigates_mechanical_portal(self):
+        """Owner visiting /owner/mechanical/ sees only mechanical jobs."""
+        self.client.login(username="dept_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_department_jobs", args=["mechanical"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "MC02 ENG")
+        self.assertNotContains(response, "EL01 ECU")
+        self.assertContains(response, "Mechanical Repair")
+
+    def test_electronic_job_intake(self):
+        """Creating a job in electronic portal automatically sets department to electronic."""
+        from .models import Job
+        self.client.login(username="dept_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_department_job_create", args=["electronic"]), {
+            "customer_name": "New Elec Customer",
+            "license_plate": "EL99 NEW",
+            "vehicle_make": "Tesla",
+            "vehicle_model": "Model S",
+            "description": "Battery management module diagnostic",
+        })
+        job = Job.objects.get(license_plate="EL99 NEW")
+        self.assertEqual(job.department, Department.ELECTRONIC)
+        self.assertRedirects(response, reverse("owner_job_detail", args=[job.pk]), fetch_redirect_response=False)
+
+    def test_mechanical_job_intake(self):
+        """Creating a job in mechanical portal automatically sets department to mechanical."""
+        from .models import Job
+        self.client.login(username="dept_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_department_job_create", args=["mechanical"]), {
+            "customer_name": "New Mech Customer",
+            "license_plate": "MC99 NEW",
+            "vehicle_make": "Toyota",
+            "vehicle_model": "Hilux",
+            "description": "Suspension replacement",
+        })
+        job = Job.objects.get(license_plate="MC99 NEW")
+        self.assertEqual(job.department, Department.MECHANICAL)
+        self.assertRedirects(response, reverse("owner_job_detail", args=[job.pk]), fetch_redirect_response=False)
+
+    def test_assign_technician_cross_department_rejected(self):
+        """Assigning a mechanical technician to an electronic job is rejected."""
+        self.client.login(username="dept_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_job_assign", args=[self.elec_job.pk]), {
+            "technician": self.mech_tech.pk,
+        })
+        self.elec_job.refresh_from_db()
+        self.assertNotEqual(self.elec_job.assigned_technician, self.mech_tech)
+
+    def test_electronic_tech_cannot_see_mechanical_jobs(self):
+        """Electronic tech bay view /tech/ displays only electronic jobs."""
+        self.client.login(username="elec_tech_user", password="ElecPass123!")
+        response = self.client.get(reverse("tech_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "EL01 ECU")
+        self.assertNotContains(response, "MC02 ENG")
+
+    def test_electronic_tech_cannot_access_mechanical_job_detail(self):
+        """Electronic tech receives 404 when querying a mechanical job detail."""
+        self.client.login(username="elec_tech_user", password="ElecPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.mech_job.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_mechanical_tech_cannot_access_electronic_job_detail(self):
+        """Mechanical tech receives 404 when querying an electronic job detail."""
+        self.client.login(username="mech_tech_user", password="MechPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.elec_job.pk]))
+        self.assertEqual(response.status_code, 404)
+
 
 
 
