@@ -41,7 +41,33 @@ Started: 2026-09-03
 - Confirmed locally: GET / returns "GarageFlow is running."
 - Dev server left running at http://127.0.0.1:8000/
 
+[2026-09-03] Baseline Git Commit (Steps 1-3)
+- Configured local git user
+- Committed baseline project files (commit d56b701)
+
+[2026-09-03] Step 4: Auth Layer
+- Added djangorestframework and djangorestframework-simplejwt to requirements.txt and installed in venv
+- Configured rest_framework and SIMPLE_JWT in garageapp/settings.py (JWTAuthentication + SessionAuthentication)
+- Created UserProfile model in jobs/models.py with Role choices ('owner', 'technician') and helper properties
+- Connected post_save signal on User model to guarantee auto-provisioning of UserProfile
+- Registered UserProfile in jobs/admin.py as inline with UserAdmin
+- Created custom DRF permissions in jobs/permissions.py: IsOwner and IsTechnician
+- Created serializers in jobs/serializers.py: UserProfileSerializer, UserSerializer, CustomTokenObtainPairSerializer (embeds role and username into JWT claims and login response)
+- Added views and routes:
+  * POST /api/token/ — issues JWT access & refresh tokens with custom claims
+  * POST /api/token/refresh/ — refreshes access token
+  * GET /api/auth/me/ — retrieves current user profile and role (authenticated)
+  * GET /api/auth/test-owner/ — owner-only protected route
+  * GET /api/auth/test-technician/ — technician-only protected route
+- Generated and applied migration jobs/migrations/0001_initial.py
+- Automated tests: created 5 unit tests in jobs/tests.py covering profile auto-creation, token issuance with claims, profile retrieval, and role enforcement (200, 401, 403 status codes)
+- Ran manage.py test jobs — 5/5 tests passed on PostgreSQL
+- Seeded dev users: owner (role: owner) and tech (role: technician)
+- Live manual verification via REST requests: confirmed token generation, payload decoding, 200 on matching role, and 403 on mismatched role
+
 Notes / decisions
 - Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
 - PostgreSQL 18 used instead of 16 (what the installer provided)
 - DB password is only in .env, never in progress.txt or settings.py
+- Role access control enforced at the permission/backend layer via IsOwner / IsTechnician
+
