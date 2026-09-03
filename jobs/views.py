@@ -338,6 +338,70 @@ class OwnerAssignTechnicianView(OwnerRequiredMixin, View):
         return redirect("owner_job_detail", pk=job.pk)
 
 
+# ---------------------------------------------------------------------------
+# Step 12: Technician Frontend Views
+# ---------------------------------------------------------------------------
+
+class TechJobDetailView(TechnicianRequiredMixin, View):
+    """Job detail page for assigned technician: view details + post status updates."""
+
+    template_name = "jobs/tech_job_detail.html"
+
+    def get(self, request, pk):
+        from .forms import StatusUpdateForm
+        # Ensure the technician can ONLY retrieve a job assigned to them
+        job = get_object_or_404(
+            Job.objects.filter(assigned_technician=request.user)
+            .select_related("assigned_technician", "created_by")
+            .prefetch_related("status_updates__technician"),
+            pk=pk,
+        )
+        form = StatusUpdateForm(initial={"status": job.status})
+        return render(request, self.template_name, {
+            "job": job,
+            "form": form,
+        })
+
+
+class TechPostStatusUpdateView(TechnicianRequiredMixin, View):
+    """POST-only: Technician posts a new status update and syncs parent Job.status."""
+
+    def post(self, request, pk):
+        from .forms import StatusUpdateForm
+        from .models import StatusUpdate
+        # Strictly verify job is assigned to requesting technician
+        job = get_object_or_404(
+            Job.objects.filter(assigned_technician=request.user),
+            pk=pk,
+        )
+        form = StatusUpdateForm(request.POST)
+        if form.is_valid():
+            new_status = form.cleaned_data["status"]
+            note = form.cleaned_data.get("note", "")
+
+            # Create status update record
+            StatusUpdate.objects.create(
+                job=job,
+                status=new_status,
+                note=note,
+                technician=request.user,
+            )
+
+            # Sync parent job
+            job.status = new_status
+            job.save(update_fields=["status", "updated_at"])
+
+            messages.success(request, f"Status updated to {job.get_status_display()}.")
+            return redirect("tech_job_detail", pk=job.pk)
+
+        # If form is invalid, re-render detail template
+        return render(request, "jobs/tech_job_detail.html", {
+            "job": job,
+            "form": form,
+        })
+
+
+
 
 
 

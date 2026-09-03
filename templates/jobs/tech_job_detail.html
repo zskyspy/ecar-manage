@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Bay Job #{{ job.id }} — GarageFlow{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'tech_dashboard' %}">Bay View</a></li>
+        <li class="breadcrumb-item active">Job #{{ job.id }}</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <!-- Left Column: Vehicle Details & Status Update Form -->
+    <div class="col-12 col-lg-5">
+        <!-- Vehicle Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-dark text-white py-3 rounded-top-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-5">
+                    <i class="bi bi-car-front me-2"></i>{{ job.vehicle_make }} {{ job.vehicle_model }}
+                </span>
+                <span class="badge bg-light text-dark font-monospace">{{ job.license_plate }}</span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-4 text-muted">Customer</dt>
+                    <dd class="col-8">{{ job.customer_name }}</dd>
+
+                    {% if job.customer_phone %}
+                    <dt class="col-4 text-muted">Phone</dt>
+                    <dd class="col-8"><a href="tel:{{ job.customer_phone }}">{{ job.customer_phone }}</a></dd>
+                    {% endif %}
+
+                    {% if job.vehicle_year %}
+                    <dt class="col-4 text-muted">Year</dt>
+                    <dd class="col-8">{{ job.vehicle_year }}</dd>
+                    {% endif %}
+
+                    <dt class="col-4 text-muted">Current Status</dt>
+                    <dd class="col-8">
+                        {% if job.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                        {% elif job.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+                        {% elif job.status == 'waiting_parts' %}<span class="badge bg-danger">Waiting Parts</span>
+                        {% elif job.status == 'cancelled' %}<span class="badge bg-secondary">Cancelled</span>
+                        {% else %}<span class="badge bg-info text-dark">Pending</span>{% endif %}
+                    </dd>
+
+                    <dt class="col-4 text-muted">Assigned</dt>
+                    <dd class="col-8 mb-0">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            <i class="bi bi-person me-1"></i>You ({{ user.username }})
+                        </span>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Work Required / Issue -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3 border-0 fw-semibold">
+                <i class="bi bi-tools text-secondary me-2"></i>Work Required
+            </div>
+            <div class="card-body">
+                <p class="mb-0 small text-dark">{{ job.description }}</p>
+            </div>
+        </div>
+
+        <!-- Post Status Update Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-primary">
+            <div class="card-header bg-white py-3 border-0 fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-arrow-repeat text-primary me-2"></i>Update Job Status</span>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'tech_job_status_update' job.pk %}">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-primary w-100 mt-3 py-2 fw-semibold">
+                        <i class="bi bi-send me-1"></i> Post Status Update
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <a href="{% url 'tech_dashboard' %}" class="btn btn-outline-secondary w-100">
+            <i class="bi bi-arrow-left me-1"></i> Back to Bay View
+        </a>
+    </div>
+
+    <!-- Right Column: Status History Timeline -->
+    <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Status History Timeline</h5>
+                <span class="badge bg-secondary rounded-pill">{{ job.status_updates.count }} update{{ job.status_updates.count|pluralize }}</span>
+            </div>
+            <div class="card-body">
+                {% if job.status_updates.all %}
+                    <div class="position-relative ps-4">
+                        <!-- Timeline continuous bar -->
+                        <div class="position-absolute top-0 start-0 ms-2 h-100 border-start border-2 border-light-subtle"></div>
+
+                        {% for update in job.status_updates.all %}
+                            <div class="position-relative mb-4">
+                                <!-- Status Node Indicator -->
+                                <div class="position-absolute start-0 translate-middle-x mt-1 rounded-circle
+                                    {% if update.status == 'completed' %}bg-success
+                                    {% elif update.status == 'in_progress' %}bg-warning
+                                    {% elif update.status == 'waiting_parts' %}bg-danger
+                                    {% elif update.status == 'cancelled' %}bg-secondary
+                                    {% else %}bg-info{% endif %}"
+                                    style="width:12px;height:12px;left:0;top:4px;">
+                                </div>
+
+                                <div class="ms-3">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                        {% if update.status == 'completed' %}<span class="badge bg-success">Completed</span>
+                                        {% elif update.status == 'in_progress' %}<span class="badge bg-warning text-dark">In Progress</span>
+                                        {% elif update.status == 'waiting_parts' %}<span class="badge bg-danger">Waiting Parts</span>
+                                        {% elif update.status == 'cancelled' %}<span class="badge bg-secondary">Cancelled</span>
+                                        {% else %}<span class="badge bg-info text-dark">Pending</span>{% endif %}
+                                        <span class="text-muted small">
+                                            <i class="bi bi-clock me-1"></i>{{ update.created_at|date:"M d, H:i" }}
+                                        </span>
+                                        {% if update.technician %}
+                                            <span class="text-muted small">
+                                                <i class="bi bi-person me-1"></i>{{ update.technician.username }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% if update.note %}
+                                        <p class="mb-0 small bg-light rounded-2 p-2 fst-italic">"{{ update.note }}"</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-clock-history fs-2 d-block mb-2 text-secondary"></i>
+                        No updates recorded yet. Use the form on the left to record progress.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

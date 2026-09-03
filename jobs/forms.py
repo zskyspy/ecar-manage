@@ -78,3 +78,18 @@ class AssignTechnicianForm(forms.Form):
             id__in=technician_ids
         ).order_by("username")
         self.fields["technician"].label_from_instance = lambda u: u.username
+
+
+class StatusUpdateForm(forms.Form):
+    """Form for a technician to post a status update on their assigned job."""
+
+    status = forms.ChoiceField(
+        choices=Job.Status.choices,
+        label="New Status",
+    )
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Add a note (optional)…"}),
+        label="Note / Comment",
+    )
+

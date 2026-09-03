@@ -180,6 +180,64 @@ Notes / decisions
 - Ran manage.py test jobs — all 40/40 tests passed on PostgreSQL
 - Committed: 88099ce
 
+[2026-09-03] Step 11: Owner Frontend Views
+- Created jobs/forms.py:
+  * JobCreateForm (ModelForm): customer, vehicle, description fields
+  * JobEditForm (ModelForm): same + editable status field for manual override
+  * AssignTechnicianForm (Form): ModelChoiceField populated from technician-role users only
+- Added 5 owner CRUD views to jobs/views.py (all guarded by OwnerRequiredMixin):
+  * OwnerJobListView: filterable job table (status / technician / license plate GET params)
+  * OwnerJobCreateView: create job form with auto created_by assignment
+  * OwnerJobDetailView: vehicle info, assign technician inline form, status history timeline
+  * OwnerJobEditView: pre-populated edit form including manual status override
+  * OwnerAssignTechnicianView: POST-only assign/unassign technician endpoint
+- Updated OwnerDashboardView to redirect to /owner/jobs/
+- Added URL routes to jobs/urls.py: /owner/jobs/, /owner/jobs/create/, /owner/jobs/<pk>/, /owner/jobs/<pk>/edit/, /owner/jobs/<pk>/assign/
+- Created templates:
+  * templates/jobs/job_list.html: stat row + filter bar (status/technician/plate) + clickable job table
+  * templates/jobs/job_create.html: crispy form with breadcrumb
+  * templates/jobs/job_detail.html: 2-col layout (vehicle info + assign form left, status history timeline right)
+  * templates/jobs/job_edit.html: pre-populated crispy form with breadcrumb
+- Added 9 automated tests in OwnerFrontendTests in jobs/tests.py (49 total in suite):
+  * test_job_list_accessible_by_owner, test_job_list_blocked_for_technician
+  * test_job_create_get, test_job_create_post
+  * test_job_detail_renders
+  * test_job_edit_get, test_job_edit_post
+  * test_assign_technician_post
+  * test_job_list_filter_by_status
+- Ran manage.py test jobs — all 49/49 tests passed on PostgreSQL
+- Committed: fdae6a2
+
+[2026-09-03] Step 12: Technician Frontend Views
+- Created StatusUpdateForm in jobs/forms.py:
+  * Status ChoiceField with Job.Status choices
+  * Optional note CharField rendered with textarea widget
+- Added 2 technician views to jobs/views.py (guarded by TechnicianRequiredMixin):
+  * TechJobDetailView: job info, status history timeline, status update form; strictly scoped to assigned technician (404 otherwise)
+  * TechPostStatusUpdateView: POST-only endpoint that validates status choice, creates StatusUpdate, syncs Job.status and updated_at, and redirects to tech_job_detail
+- Added URL routes to jobs/urls.py:
+  * /tech/jobs/<pk>/ -> TechJobDetailView
+  * /tech/jobs/<pk>/update/ -> TechPostStatusUpdateView
+- Created template templates/jobs/tech_job_detail.html:
+  * Breadcrumbs back to Bay View
+  * Vehicle and customer summary card
+  * Crispy-styled status update form
+  * Status history timeline with color-coded nodes
+- Updated templates/jobs/tech_dashboard.html: added "View / Update" button linking directly to tech_job_detail
+- Added 8 automated unit tests in TechFrontendTests in jobs/tests.py (57 total in suite):
+  * test_tech_bay_list_shows_only_assigned_jobs
+  * test_tech_job_detail_renders
+  * test_tech_cannot_access_unassigned_job_detail (404)
+  * test_tech_cannot_access_other_tech_job_detail (404)
+  * test_tech_post_status_update (StatusUpdate created, Job.status synced, redirect)
+  * test_tech_post_invalid_status (form validation error handling)
+  * test_tech_cannot_post_status_update_on_unassigned_job (404)
+  * test_owner_cannot_access_tech_detail (403)
+- Ran manage.py test jobs — all 57/57 tests passed on PostgreSQL
+- Verified live behavior via fast direct client verification (< 2 seconds): confirmed login, bay list, detail retrieval, status update submission, database state sync, and 404 security isolation on unassigned jobs
+
+
+
 
 
 

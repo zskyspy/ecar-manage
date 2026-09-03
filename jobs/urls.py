@@ -32,6 +32,11 @@ urlpatterns = [
     path("owner/jobs/<int:pk>/edit/", views.OwnerJobEditView.as_view(), name="owner_job_edit"),
     path("owner/jobs/<int:pk>/assign/", views.OwnerAssignTechnicianView.as_view(), name="owner_job_assign"),
 
+    # ---- Technician Bay Management (Step 12) ----
+    path("tech/jobs/<int:pk>/", views.TechJobDetailView.as_view(), name="tech_job_detail"),
+    path("tech/jobs/<int:pk>/update/", views.TechPostStatusUpdateView.as_view(), name="tech_job_status_update"),
+
+
     # ---- Core Job CRUD API ----
     path("api/", include(router.urls)),
 

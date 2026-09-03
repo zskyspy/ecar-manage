@@ -789,6 +789,138 @@ class OwnerFrontendTests(TestCase):
         self.assertNotContains(response, "TC01 XYZ")
 
 
+class TechFrontendTests(TestCase):
+    """Tests for Step 12: Technician Frontend Views."""
+
+    def setUp(self):
+        from django.test import Client
+        from .models import Job
+
+        self.client = Client()
+
+        # Owner
+        self.owner = User.objects.create_user(username="bay_owner", password="OwnerPass123!")
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Tech A
+        self.tech_a = User.objects.create_user(username="tech_a_bay", password="TechAPass123!")
+        self.tech_a.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_a.profile.save()
+
+        # Tech B
+        self.tech_b = User.objects.create_user(username="tech_b_bay", password="TechBPass123!")
+        self.tech_b.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_b.profile.save()
+
+        # Job assigned to Tech A
+        self.job_a = Job.objects.create(
+            customer_name="Customer Tech A",
+            license_plate="TA01 AAA",
+            vehicle_make="Toyota",
+            vehicle_model="Corolla",
+            description="Brake pad replacement",
+            assigned_technician=self.tech_a,
+            created_by=self.owner,
+        )
+
+        # Job assigned to Tech B
+        self.job_b = Job.objects.create(
+            customer_name="Customer Tech B",
+            license_plate="TB02 BBB",
+            vehicle_make="Nissan",
+            vehicle_model="Qashqai",
+            description="Oil leak diagnosis",
+            assigned_technician=self.tech_b,
+            created_by=self.owner,
+        )
+
+        # Unassigned job
+        self.job_unassigned = Job.objects.create(
+            customer_name="Unassigned Customer",
+            license_plate="UN03 CCC",
+            vehicle_make="Vauxhall",
+            vehicle_model="Corsa",
+            description="Clutch issue",
+            assigned_technician=None,
+            created_by=self.owner,
+        )
+
+    def test_tech_bay_list_shows_only_assigned_jobs(self):
+        """Technician bay view /tech/ displays only jobs assigned to the logged-in technician."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.get(reverse("tech_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TA01 AAA")
+        self.assertNotContains(response, "TB02 BBB")
+        self.assertNotContains(response, "UN03 CCC")
+
+    def test_tech_job_detail_renders(self):
+        """GET /tech/jobs/<pk>/ renders vehicle details and status update form for assigned tech."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.job_a.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TA01 AAA")
+        self.assertContains(response, "Post Status Update")
+        self.assertContains(response, "Brake pad replacement")
+
+    def test_tech_cannot_access_unassigned_job_detail(self):
+        """GET /tech/jobs/<pk>/ returns 404 for an unassigned job."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.job_unassigned.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_tech_cannot_access_other_tech_job_detail(self):
+        """GET /tech/jobs/<pk>/ returns 404 for a job assigned to another technician."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.job_b.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_tech_post_status_update(self):
+        """POST /tech/jobs/<pk>/update/ creates StatusUpdate, syncs Job.status, and redirects."""
+        from .models import Job, StatusUpdate
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.post(reverse("tech_job_status_update", args=[self.job_a.pk]), {
+            "status": "in_progress",
+            "note": "Started removing front wheels.",
+        })
+        self.assertRedirects(response, reverse("tech_job_detail", args=[self.job_a.pk]), fetch_redirect_response=False)
+
+        self.job_a.refresh_from_db()
+        self.assertEqual(self.job_a.status, Job.Status.IN_PROGRESS)
+
+        update = StatusUpdate.objects.filter(job=self.job_a).latest("created_at")
+        self.assertEqual(update.status, Job.Status.IN_PROGRESS)
+        self.assertEqual(update.note, "Started removing front wheels.")
+        self.assertEqual(update.technician, self.tech_a)
+
+    def test_tech_post_invalid_status(self):
+        """POST /tech/jobs/<pk>/update/ with invalid status re-renders form with errors."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.post(reverse("tech_job_status_update", args=[self.job_a.pk]), {
+            "status": "invalid_status_value",
+            "note": "Trying invalid status",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "status", "Select a valid choice. invalid_status_value is not one of the available choices.")
+
+    def test_tech_cannot_post_status_update_on_unassigned_job(self):
+        """POST /tech/jobs/<pk>/update/ returns 404 when technician attempts to update unassigned job."""
+        self.client.login(username="tech_a_bay", password="TechAPass123!")
+        response = self.client.post(reverse("tech_job_status_update", args=[self.job_unassigned.pk]), {
+            "status": "in_progress",
+            "note": "Unauthorized attempt",
+        })
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_cannot_access_tech_detail(self):
+        """Owner accessing /tech/jobs/<pk>/ receives 403 Forbidden."""
+        self.client.login(username="bay_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("tech_job_detail", args=[self.job_a.pk]))
+        self.assertEqual(response.status_code, 403)
+
+
+
 
 
 
