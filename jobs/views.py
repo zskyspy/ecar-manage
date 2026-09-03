@@ -66,12 +66,31 @@ class TechnicianOnlyTestView(APIView):
 
 
 class JobViewSet(viewsets.ModelViewSet):
-    queryset = Job.objects.all().select_related("assigned_technician", "created_by")
     serializer_class = JobSerializer
     filterset_class = JobFilter
     search_fields = ["customer_name", "license_plate", "vehicle_make", "vehicle_model", "vin"]
     ordering_fields = ["created_at", "updated_at", "status"]
     ordering = ["-created_at"]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Job.objects.none()
+
+        # Owners and superusers can view all jobs
+        if getattr(user, "is_superuser", False) or (
+            hasattr(user, "profile") and user.profile.is_owner
+        ):
+            return Job.objects.all().select_related("assigned_technician", "created_by")
+
+        # Technicians can only view jobs assigned to them
+        if hasattr(user, "profile") and user.profile.is_technician:
+            return Job.objects.filter(assigned_technician=user).select_related(
+                "assigned_technician", "created_by"
+            )
+
+        return Job.objects.none()
+
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:

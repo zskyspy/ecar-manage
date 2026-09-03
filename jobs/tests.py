@@ -123,7 +123,10 @@ class JobCrudTests(TestCase):
             username="test_user",
             password="Password123!",
         )
+        self.user.profile.role = UserProfile.Role.OWNER
+        self.user.profile.save()
         self.client.force_authenticate(user=self.user)
+
 
         self.job_data = {
             "customer_name": "Alice Smith",
@@ -401,9 +404,11 @@ class StatusUpdateTests(TestCase):
         payload = {"status": "completed", "note": "Trying to update someone else's job"}
         response = self.client.post(url, payload, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        # Under query-level scoping, unassigned technician gets 404 Not Found (or 403 Forbidden)
+        self.assertIn(response.status_code, (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND))
         self.job.refresh_from_db()
         self.assertEqual(self.job.status, Job.Status.PENDING)
+
 
     def test_owner_cannot_post_status_update_directly(self):
         """Owner receives 403 Forbidden on the technician status-update endpoint."""
@@ -461,6 +466,129 @@ class StatusUpdateTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("status", response.data)
+
+
+class RoleScopedViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create Owner
+        self.owner = User.objects.create_user(
+            username="scoped_owner",
+            password="OwnerPassword123!",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Create Technician A
+        self.tech_a = User.objects.create_user(
+            username="tech_a",
+            password="TechPassword123!",
+        )
+        self.tech_a.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_a.profile.save()
+
+        # Create Technician B
+        self.tech_b = User.objects.create_user(
+            username="tech_b",
+            password="TechPassword123!",
+        )
+        self.tech_b.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech_b.profile.save()
+
+        from .models import Job
+
+        # Job 1: Unassigned
+        self.job_unassigned = Job.objects.create(
+            customer_name="Customer 1",
+            license_plate="UN11 AAA",
+            vehicle_make="Toyota",
+            vehicle_model="Yaris",
+            description="Inspection",
+            assigned_technician=None,
+            created_by=self.owner,
+        )
+
+        # Job 2: Assigned to Tech A
+        self.job_tech_a = Job.objects.create(
+            customer_name="Customer 2",
+            license_plate="TA22 AAA",
+            vehicle_make="Honda",
+            vehicle_model="Civic",
+            description="Brake pads",
+            assigned_technician=self.tech_a,
+            created_by=self.owner,
+        )
+
+        # Job 3: Assigned to Tech B
+        self.job_tech_b = Job.objects.create(
+            customer_name="Customer 3",
+            license_plate="TB33 BBB",
+            vehicle_make="Nissan",
+            vehicle_model="Micra",
+            description="Oil change",
+            assigned_technician=self.tech_b,
+            created_by=self.owner,
+        )
+
+    def test_owner_sees_all_jobs(self):
+        """Owner can see all jobs: unassigned, tech A, and tech B."""
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-list")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        job_ids = [item["id"] for item in response.data]
+        self.assertIn(self.job_unassigned.id, job_ids)
+        self.assertIn(self.job_tech_a.id, job_ids)
+        self.assertIn(self.job_tech_b.id, job_ids)
+
+    def test_technician_sees_only_assigned_jobs(self):
+        """Technician A can only see jobs assigned to Tech A."""
+        self.client.force_authenticate(user=self.tech_a)
+        url = reverse("job-list")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.job_tech_a.id)
+
+    def test_technician_b_sees_only_assigned_jobs(self):
+        """Technician B can only see jobs assigned to Tech B."""
+        self.client.force_authenticate(user=self.tech_b)
+        url = reverse("job-list")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], self.job_tech_b.id)
+
+    def test_technician_cannot_retrieve_unassigned_job(self):
+        """Technician receives 404 when querying detail of an unassigned job."""
+        self.client.force_authenticate(user=self.tech_a)
+        url = reverse("job-detail", kwargs={"pk": self.job_unassigned.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_technician_cannot_retrieve_other_technician_job(self):
+        """Technician A receives 404 when querying detail of Tech B's job."""
+        self.client.force_authenticate(user=self.tech_a)
+        url = reverse("job-detail", kwargs={"pk": self.job_tech_b.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_retrieve_any_job(self):
+        """Owner can retrieve any job detail."""
+        self.client.force_authenticate(user=self.owner)
+        for job_obj in (self.job_unassigned, self.job_tech_a, self.job_tech_b):
+            url = reverse("job-detail", kwargs={"pk": job_obj.id})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["id"], job_obj.id)
+
 
 
 

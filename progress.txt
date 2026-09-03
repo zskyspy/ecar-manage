@@ -121,6 +121,23 @@ Started: 2026-09-03
 - Ran manage.py test jobs — all 24/24 tests passed on PostgreSQL
 - Live manual verification via REST requests: confirmed assigned technician posting update, immediate parent job status sync, status history retrieval, and 403 blocking on unassigned users
 
+[2026-09-03] Step 8: Role-Scoped Views
+- Overrode get_queryset() in JobViewSet:
+  * Unauthenticated users: Job.objects.none()
+  * Owners and superusers: all shop jobs (select_related assigned_technician and created_by)
+  * Technicians: strictly jobs where assigned_technician == request.user
+- Enforced data isolation at query level rather than frontend filtering: unassigned jobs or jobs belonging to other technicians return 404 Not Found on detail endpoints
+- Updated JobCrudTests setUp to test owner-level CRUD capabilities
+- Added 6 automated tests in RoleScopedViewTests in jobs/tests.py (30 total in suite):
+  * test_owner_sees_all_jobs (owner retrieves unassigned and all technician jobs)
+  * test_technician_sees_only_assigned_jobs (Tech A only retrieves Tech A's jobs)
+  * test_technician_b_sees_only_assigned_jobs (Tech B only retrieves Tech B's jobs)
+  * test_technician_cannot_retrieve_unassigned_job (404 Not Found)
+  * test_technician_cannot_retrieve_other_technician_job (404 Not Found)
+  * test_owner_can_retrieve_any_job (200 OK for all jobs)
+- Ran manage.py test jobs — all 30/30 tests passed on PostgreSQL
+- Live manual verification via REST requests: confirmed owner seeing all jobs (count: 2), tech seeing assigned job (count: 1), tech2 seeing empty list (count: 0), and unassigned job detail returning 404 for tech and 200 for owner
+
 Notes / decisions
 - Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
 - PostgreSQL 18 used instead of 16 (what the installer provided)
@@ -129,6 +146,8 @@ Notes / decisions
 - Job CRUD routes live under /api/jobs/ with DRF DefaultRouter
 - Dedicated action endpoint /api/jobs/{id}/assign/ guarded by IsOwner
 - Status updates nested at /api/jobs/{id}/status-updates/ with parent status sync and assigned technician guard
+- Query-level scoping implemented via get_queryset() ensuring technicians cannot access or query non-assigned jobs
+
 
 
 
