@@ -645,10 +645,10 @@ class FrontendViewTests(TestCase):
         self.assertRedirects(response, "/tech/", fetch_redirect_response=False)
 
     def test_owner_can_access_owner_portal(self):
-        """Owner visiting /owner/ gets 200 OK."""
+        """Owner visiting /owner/ is redirected to /owner/jobs/ (the job list)."""
         self.client.login(username="fe_owner", password="OwnerFE123!")
         response = self.client.get(reverse("owner_dashboard"))
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, "/owner/jobs/", fetch_redirect_response=False)
 
     def test_tech_can_access_tech_portal(self):
         """Technician visiting /tech/ gets 200 OK."""
@@ -667,6 +667,127 @@ class FrontendViewTests(TestCase):
         self.client.login(username="fe_owner", password="OwnerFE123!")
         response = self.client.get(reverse("tech_dashboard"))
         self.assertEqual(response.status_code, 403)
+
+
+class OwnerFrontendTests(TestCase):
+    """Tests for Step 11: Owner Frontend CRUD Views."""
+
+    def setUp(self):
+        from django.test import Client
+        from .models import Job
+
+        self.client = Client()
+
+        # Owner
+        self.owner = User.objects.create_user(username="crud_owner", password="CrudOwner1!")
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Technician
+        self.tech = User.objects.create_user(username="crud_tech", password="CrudTech1!")
+        self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.save()
+
+        # Pre-existing job
+        self.job = Job.objects.create(
+            customer_name="Test Customer",
+            license_plate="TC01 XYZ",
+            vehicle_make="Ford",
+            vehicle_model="Focus",
+            description="Annual service",
+            created_by=self.owner,
+        )
+        self.client.login(username="crud_owner", password="CrudOwner1!")
+
+    def test_job_list_accessible_by_owner(self):
+        """GET /owner/jobs/ returns 200 for owner."""
+        response = self.client.get(reverse("owner_job_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TC01 XYZ")
+
+    def test_job_list_blocked_for_technician(self):
+        """GET /owner/jobs/ returns 403 for technician."""
+        self.client.login(username="crud_tech", password="CrudTech1!")
+        response = self.client.get(reverse("owner_job_list"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_job_create_get(self):
+        """GET /owner/jobs/create/ renders the create form."""
+        response = self.client.get(reverse("owner_job_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Create New Repair Job")
+
+    def test_job_create_post(self):
+        """POST /owner/jobs/create/ creates a job and redirects to detail."""
+        from .models import Job
+        count_before = Job.objects.count()
+        response = self.client.post(reverse("owner_job_create"), {
+            "customer_name": "New Customer",
+            "customer_phone": "07700900123",
+            "license_plate": "NEW1 AAA",
+            "vehicle_make": "BMW",
+            "vehicle_model": "3 Series",
+            "description": "Tyre replacement",
+        })
+        self.assertEqual(Job.objects.count(), count_before + 1)
+        new_job = Job.objects.latest("created_at")
+        self.assertRedirects(response, reverse("owner_job_detail", args=[new_job.pk]), fetch_redirect_response=False)
+
+    def test_job_detail_renders(self):
+        """GET /owner/jobs/<pk>/ renders vehicle info and status history section."""
+        response = self.client.get(reverse("owner_job_detail", args=[self.job.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TC01 XYZ")
+        self.assertContains(response, "Status History")
+
+    def test_job_edit_get(self):
+        """GET /owner/jobs/<pk>/edit/ renders pre-populated form."""
+        response = self.client.get(reverse("owner_job_edit", args=[self.job.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "TC01 XYZ")
+
+    def test_job_edit_post(self):
+        """POST /owner/jobs/<pk>/edit/ updates job fields and redirects to detail."""
+        response = self.client.post(reverse("owner_job_edit", args=[self.job.pk]), {
+            "customer_name": "Updated Customer",
+            "customer_phone": "",
+            "license_plate": "TC01 XYZ",
+            "vehicle_make": "Ford",
+            "vehicle_model": "Focus",
+            "description": "Updated description",
+            "status": "in_progress",
+        })
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.customer_name, "Updated Customer")
+        self.assertEqual(self.job.status, "in_progress")
+        self.assertRedirects(response, reverse("owner_job_detail", args=[self.job.pk]), fetch_redirect_response=False)
+
+    def test_assign_technician_post(self):
+        """POST /owner/jobs/<pk>/assign/ assigns technician and redirects to detail."""
+        response = self.client.post(reverse("owner_job_assign", args=[self.job.pk]), {
+            "technician": self.tech.pk,
+        })
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.assigned_technician, self.tech)
+        self.assertRedirects(response, reverse("owner_job_detail", args=[self.job.pk]), fetch_redirect_response=False)
+
+    def test_job_list_filter_by_status(self):
+        """GET /owner/jobs/?status=in_progress returns only in_progress jobs."""
+        from .models import Job
+        Job.objects.create(
+            customer_name="Another",
+            license_plate="IP01 BBB",
+            vehicle_make="Vauxhall",
+            vehicle_model="Astra",
+            description="Oil service",
+            status="in_progress",
+            created_by=self.owner,
+        )
+        response = self.client.get(reverse("owner_job_list") + "?status=in_progress")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "IP01 BBB")
+        self.assertNotContains(response, "TC01 XYZ")
+
 
 
 

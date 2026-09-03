@@ -1,7 +1,8 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import TemplateView
 from rest_framework import status, viewsets
@@ -171,24 +172,11 @@ class DashboardRedirectView(LoginRequiredMixin, View):
         return redirect("owner_dashboard")
 
 
-class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
-    """Owner portal: lists every job in the shop with status and technician info."""
+class OwnerDashboardView(OwnerRequiredMixin, View):
+    """Owner portal home: redirect straight to the job list."""
 
-    template_name = "jobs/owner_dashboard.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        jobs = (
-            Job.objects.all()
-            .select_related("assigned_technician", "created_by")
-            .order_by("-created_at")
-        )
-        ctx["jobs"] = jobs
-        ctx["total_jobs"] = jobs.count()
-        ctx["in_progress_jobs"] = jobs.filter(status=Job.Status.IN_PROGRESS).count()
-        ctx["unassigned_jobs"] = jobs.filter(assigned_technician__isnull=True).count()
-        ctx["completed_jobs"] = jobs.filter(status=Job.Status.COMPLETED).count()
-        return ctx
+    def get(self, request):
+        return redirect("owner_job_list")
 
 
 class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
@@ -204,6 +192,151 @@ class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
             .order_by("-created_at")
         )
         return ctx
+
+
+# ---------------------------------------------------------------------------
+# Step 11: Owner Frontend CRUD Views
+# ---------------------------------------------------------------------------
+
+class OwnerJobListView(OwnerRequiredMixin, View):
+    """Filterable list of all jobs in the workshop."""
+
+    template_name = "jobs/job_list.html"
+
+    STATUS_BADGE = {
+        Job.Status.PENDING: "info",
+        Job.Status.IN_PROGRESS: "warning",
+        Job.Status.WAITING_PARTS: "danger",
+        Job.Status.COMPLETED: "success",
+        Job.Status.CANCELLED: "secondary",
+    }
+
+    def get(self, request):
+        from django.contrib.auth.models import User as DjangoUser
+        from .models import UserProfile
+
+        qs = (
+            Job.objects.all()
+            .select_related("assigned_technician", "created_by")
+            .order_by("-created_at")
+        )
+
+        # --- filters ---
+        status_filter = request.GET.get("status", "")
+        tech_filter = request.GET.get("technician", "")
+        plate_filter = request.GET.get("plate", "").strip()
+
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        if tech_filter == "unassigned":
+            qs = qs.filter(assigned_technician__isnull=True)
+        elif tech_filter:
+            qs = qs.filter(assigned_technician__username=tech_filter)
+        if plate_filter:
+            qs = qs.filter(license_plate__icontains=plate_filter)
+
+        tech_ids = UserProfile.objects.filter(
+            role=UserProfile.Role.TECHNICIAN
+        ).values_list("user_id", flat=True)
+        technicians = DjangoUser.objects.filter(id__in=tech_ids).order_by("username")
+
+        return render(request, self.template_name, {
+            "jobs": qs,
+            "total": Job.objects.count(),
+            "in_progress": Job.objects.filter(status=Job.Status.IN_PROGRESS).count(),
+            "waiting_parts": Job.objects.filter(status=Job.Status.WAITING_PARTS).count(),
+            "completed": Job.objects.filter(status=Job.Status.COMPLETED).count(),
+            "status_choices": Job.Status.choices,
+            "technicians": technicians,
+            "current_status": status_filter,
+            "current_tech": tech_filter,
+            "current_plate": plate_filter,
+        })
+
+
+class OwnerJobCreateView(OwnerRequiredMixin, View):
+    """Create a new repair job."""
+
+    template_name = "jobs/job_create.html"
+
+    def get(self, request):
+        from .forms import JobCreateForm
+        return render(request, self.template_name, {"form": JobCreateForm()})
+
+    def post(self, request):
+        from .forms import JobCreateForm
+        form = JobCreateForm(request.POST)
+        if form.is_valid():
+            job = form.save(commit=False)
+            job.created_by = request.user
+            job.save()
+            messages.success(request, f"Job #{job.id} created successfully.")
+            return redirect("owner_job_detail", pk=job.pk)
+        return render(request, self.template_name, {"form": form})
+
+
+class OwnerJobDetailView(OwnerRequiredMixin, View):
+    """Job detail page: info, assign technician form, status history timeline."""
+
+    template_name = "jobs/job_detail.html"
+
+    def get(self, request, pk):
+        from .forms import AssignTechnicianForm
+        job = get_object_or_404(
+            Job.objects.select_related("assigned_technician", "created_by")
+            .prefetch_related("status_updates__technician"),
+            pk=pk,
+        )
+        assign_form = AssignTechnicianForm(
+            initial={"technician": job.assigned_technician}
+        )
+        return render(request, self.template_name, {
+            "job": job,
+            "assign_form": assign_form,
+        })
+
+
+class OwnerJobEditView(OwnerRequiredMixin, View):
+    """Edit job fields (customer info, vehicle info, description, status)."""
+
+    template_name = "jobs/job_edit.html"
+
+    def get(self, request, pk):
+        from .forms import JobEditForm
+        job = get_object_or_404(Job, pk=pk)
+        return render(request, self.template_name, {
+            "form": JobEditForm(instance=job),
+            "job": job,
+        })
+
+    def post(self, request, pk):
+        from .forms import JobEditForm
+        job = get_object_or_404(Job, pk=pk)
+        form = JobEditForm(request.POST, instance=job)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Job #{job.id} updated successfully.")
+            return redirect("owner_job_detail", pk=job.pk)
+        return render(request, self.template_name, {"form": form, "job": job})
+
+
+class OwnerAssignTechnicianView(OwnerRequiredMixin, View):
+    """POST-only: assign or unassign a technician to/from a job."""
+
+    def post(self, request, pk):
+        from .forms import AssignTechnicianForm
+        job = get_object_or_404(Job, pk=pk)
+        form = AssignTechnicianForm(request.POST)
+        if form.is_valid():
+            tech = form.cleaned_data["technician"]
+            job.assigned_technician = tech
+            job.save(update_fields=["assigned_technician", "updated_at"])
+            name = tech.username if tech else "None"
+            messages.success(request, f"Technician updated to: {name}.")
+        else:
+            messages.error(request, "Invalid technician selection.")
+        return redirect("owner_job_detail", pk=job.pk)
+
 
 
 

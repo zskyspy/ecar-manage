@@ -148,6 +148,39 @@ Notes / decisions
 - Status updates nested at /api/jobs/{id}/status-updates/ with parent status sync and assigned technician guard
 - Query-level scoping implemented via get_queryset() ensuring technicians cannot access or query non-assigned jobs
 
+[2026-09-03] Step 9: DEFERRED — will revisit after Step 10
+
+[2026-09-03] Step 10: Frontend Foundation
+- Stack: Django Templates + Bootstrap 5 (CDN) + Bootstrap Icons + django-crispy-forms / crispy-bootstrap5
+- Installed: django-crispy-forms==2.7, crispy-bootstrap5==2026.9
+- Updated requirements.txt and garageapp/settings.py:
+  * Added "crispy_forms" and "crispy_bootstrap5" to INSTALLED_APPS
+  * Set CRISPY_ALLOWED_TEMPLATE_PACKS and CRISPY_TEMPLATE_PACK = "bootstrap5"
+  * Set LOGIN_URL, LOGIN_REDIRECT_URL, LOGOUT_REDIRECT_URL for Django auth
+- Created jobs/mixins.py:
+  * OwnerRequiredMixin (LoginRequiredMixin + UserPassesTestMixin) — allows owners and superusers
+  * TechnicianRequiredMixin (LoginRequiredMixin + UserPassesTestMixin) — allows technicians only
+- Created templates/base.html: responsive Bootstrap 5 navbar with GarageFlow branding, role badge (Owner/Technician), username display, logout button, flash messages block, main content block
+- Created templates/registration/login.html: centered card login page with crispy form rendering and error handling
+- Created templates/jobs/owner_dashboard.html: stat cards (total, in-progress, pending, completed) and full job table
+- Created templates/jobs/tech_dashboard.html: card grid of assigned jobs with status badges and latest update preview
+- Added DashboardRedirectView, OwnerDashboardView, TechnicianDashboardView to jobs/views.py
+- Added frontend URL routes to jobs/urls.py: /login/, /logout/, /dashboard/, /owner/, /tech/
+- Added 9 automated tests in FrontendViewTests in jobs/tests.py (40 total in suite):
+  * test_login_page_renders (200 OK, contains GarageFlow branding)
+  * test_unauthenticated_dashboard_redirects_to_login (302 -> /login/?next=/dashboard/)
+  * test_unauthenticated_owner_portal_redirects_to_login (302 -> /login/?next=/owner/)
+  * test_unauthenticated_tech_portal_redirects_to_login (302 -> /login/?next=/tech/)
+  * test_owner_dashboard_redirect (owner at /dashboard/ -> 302 to /owner/)
+  * test_tech_dashboard_redirect (tech at /dashboard/ -> 302 to /tech/)
+  * test_owner_can_access_owner_portal (200 OK)
+  * test_tech_can_access_tech_portal (200 OK)
+  * test_tech_cannot_access_owner_portal (403 Forbidden)
+  * test_owner_cannot_access_tech_portal (403 Forbidden)
+- Ran manage.py test jobs — all 40/40 tests passed on PostgreSQL
+- Committed: 88099ce
+
+
 
 
 

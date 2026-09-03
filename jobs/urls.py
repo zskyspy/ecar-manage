@@ -25,6 +25,13 @@ urlpatterns = [
     path("owner/", views.OwnerDashboardView.as_view(), name="owner_dashboard"),
     path("tech/", views.TechnicianDashboardView.as_view(), name="tech_dashboard"),
 
+    # ---- Owner Job Management (Step 11) ----
+    path("owner/jobs/", views.OwnerJobListView.as_view(), name="owner_job_list"),
+    path("owner/jobs/create/", views.OwnerJobCreateView.as_view(), name="owner_job_create"),
+    path("owner/jobs/<int:pk>/", views.OwnerJobDetailView.as_view(), name="owner_job_detail"),
+    path("owner/jobs/<int:pk>/edit/", views.OwnerJobEditView.as_view(), name="owner_job_edit"),
+    path("owner/jobs/<int:pk>/assign/", views.OwnerAssignTechnicianView.as_view(), name="owner_job_assign"),
+
     # ---- Core Job CRUD API ----
     path("api/", include(router.urls)),
 
