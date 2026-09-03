@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Technician — ECAR Space{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb stat-label" style="font-size:0.75rem;">
+        <li class="breadcrumb-item"><a href="{% url 'owner_settings' %}" class="text-decoration-none">Settings</a></li>
+        <li class="breadcrumb-item active text-dark">Add Technician</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-7 col-xl-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 p-md-5">
+            <div class="mb-4 pb-2 border-bottom">
+                <h4 class="fw-bold mb-1">Onboard Technician</h4>
+                <p class="stat-label mb-0">Register a new specialist to Electronic or Mechanical Repair</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex gap-2 mt-4 pt-2">
+                    <button type="submit" class="btn btn-ecar-primary px-4 py-2">
+                        <i class="bi bi-person-check me-1"></i> Register Technician
+                    </button>
+                    <a href="{% url 'owner_settings' %}" class="btn btn-ecar-secondary px-4 py-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

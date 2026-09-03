@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
@@ -15,7 +17,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .mixins import OwnerRequiredMixin, TechnicianRequiredMixin
 
 from .filters import JobFilter
-from .models import Job
+from .models import Department, Job, UserProfile
 from .permissions import IsOwner, IsTechnician
 from .serializers import (
     CustomTokenObtainPairSerializer,
@@ -422,6 +424,150 @@ class TechPostStatusUpdateView(TechnicianRequiredMixin, View):
             "job": job,
             "form": form,
         })
+
+
+# ---------------------------------------------------------------------------
+# Owner Settings & Technician Management Views
+# ---------------------------------------------------------------------------
+
+class OwnerSettingsView(OwnerRequiredMixin, View):
+    """Owner Settings Dashboard: Profile settings & Technician Roster."""
+
+    template_name = "jobs/owner_settings.html"
+
+    def get(self, request):
+        from django.contrib.auth.models import User as DjangoUser
+        from django.db.models import Count
+        from .forms import OwnerProfileForm
+
+        profile_form = OwnerProfileForm(initial={
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "email": request.user.email,
+            "phone_number": getattr(request.user.profile, "phone_number", ""),
+        })
+        password_form = PasswordChangeForm(request.user)
+
+        technicians = (
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN)
+            .select_related("profile")
+            .annotate(active_jobs_count=Count("assigned_jobs"))
+            .order_by("profile__department", "username")
+        )
+
+        return render(request, self.template_name, {
+            "profile_form": profile_form,
+            "password_form": password_form,
+            "technicians": technicians,
+        })
+
+    def post(self, request):
+        from .forms import OwnerProfileForm
+
+        form = OwnerProfileForm(request.POST)
+        if form.is_valid():
+            request.user.first_name = form.cleaned_data["first_name"]
+            request.user.last_name = form.cleaned_data["last_name"]
+            request.user.email = form.cleaned_data["email"]
+            request.user.save()
+
+            profile = request.user.profile
+            profile.phone_number = form.cleaned_data["phone_number"]
+            profile.save()
+
+            messages.success(request, "Owner profile details updated successfully.")
+            return redirect("owner_settings")
+
+        from django.contrib.auth.models import User as DjangoUser
+        from django.db.models import Count
+        technicians = (
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN)
+            .select_related("profile")
+            .annotate(active_jobs_count=Count("assigned_jobs"))
+            .order_by("profile__department", "username")
+        )
+        return render(request, self.template_name, {
+            "profile_form": form,
+            "password_form": PasswordChangeForm(request.user),
+            "technicians": technicians,
+        })
+
+
+class OwnerPasswordChangeView(OwnerRequiredMixin, View):
+    """POST-only: Update owner password securely."""
+
+    def post(self, request):
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Your password has been changed successfully.")
+            return redirect("owner_settings")
+
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field.capitalize()}: {error}")
+        return redirect("owner_settings")
+
+
+class OwnerAddTechnicianView(OwnerRequiredMixin, View):
+    """Onboard a new technician into Electronic or Mechanical department."""
+
+    template_name = "jobs/technician_add.html"
+
+    def get(self, request):
+        from .forms import TechnicianCreateForm
+        return render(request, self.template_name, {
+            "form": TechnicianCreateForm(),
+        })
+
+    def post(self, request):
+        from django.contrib.auth.models import User as DjangoUser
+        from .forms import TechnicianCreateForm
+
+        form = TechnicianCreateForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data["username"]
+            email = form.cleaned_data.get("email", "")
+            phone = form.cleaned_data.get("phone_number", "")
+            department = form.cleaned_data["department"]
+            password = form.cleaned_data["password"]
+
+            user = DjangoUser.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+            )
+            user.profile.role = UserProfile.Role.TECHNICIAN
+            user.profile.department = department
+            user.profile.phone_number = phone
+            user.profile.save()
+
+            messages.success(
+                request,
+                f"Technician '{user.username}' successfully registered to {user.profile.get_department_display()}.",
+            )
+            return redirect("owner_settings")
+
+        return render(request, self.template_name, {"form": form})
+
+
+class OwnerDeleteTechnicianView(OwnerRequiredMixin, View):
+    """POST-only: Remove a technician and safely unassign their jobs."""
+
+    def post(self, request, pk):
+        from django.contrib.auth.models import User as DjangoUser
+        tech = get_object_or_404(
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN),
+            pk=pk,
+        )
+        tech_name = tech.username
+        # Safely unassign active jobs
+        Job.objects.filter(assigned_technician=tech).update(assigned_technician=None)
+        tech.delete()
+        messages.success(request, f"Technician '{tech_name}' removed and active jobs unassigned.")
+        return redirect("owner_settings")
+
 
 
 

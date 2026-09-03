@@ -1066,6 +1066,133 @@ class TwoDepartmentTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class OwnerSettingsAndTechManagementTests(TestCase):
+    """Tests for Owner Settings, Profile updates, and Technician Management."""
+
+    def setUp(self):
+        from django.test import Client
+        from .models import Job
+
+        self.client = Client()
+
+        # Owner
+        self.owner = User.objects.create_user(
+            username="settings_owner",
+            password="OwnerPass123!",
+            first_name="Moayed",
+            email="owner@ecarspace.local",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Existing Technician
+        self.tech = User.objects.create_user(
+            username="existing_tech",
+            password="TechPass123!",
+        )
+        self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.department = Department.ELECTRONIC
+        self.tech.profile.save()
+
+        # Job assigned to tech
+        self.job = Job.objects.create(
+            customer_name="Job Customer",
+            license_plate="TECH-01",
+            vehicle_make="Audi",
+            vehicle_model="RS6",
+            description="Dyno test",
+            department=Department.ELECTRONIC,
+            assigned_technician=self.tech,
+            created_by=self.owner,
+        )
+
+    def test_owner_can_access_settings(self):
+        """Owner accessing /owner/settings/ gets 200 OK with roster and profile forms."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Workshop Settings")
+        self.assertContains(response, "existing_tech")
+
+    def test_technician_cannot_access_settings(self):
+        """Technician accessing /owner/settings/ receives 403 Forbidden."""
+        self.client.login(username="existing_tech", password="TechPass123!")
+        response = self.client.get(reverse("owner_settings"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_update_profile_info(self):
+        """Owner can update their name, email, and phone number."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_settings"), {
+            "first_name": "Moayed Updated",
+            "last_name": "Habbechi",
+            "email": "updated@ecarspace.local",
+            "phone_number": "07123456789",
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.first_name, "Moayed Updated")
+        self.assertEqual(self.owner.last_name, "Habbechi")
+        self.assertEqual(self.owner.profile.phone_number, "07123456789")
+
+    def test_owner_can_change_password(self):
+        """Owner can update their password and login with the new one."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_password_change"), {
+            "old_password": "OwnerPass123!",
+            "new_password1": "NewOwnerPass999!",
+            "new_password2": "NewOwnerPass999!",
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.client.logout()
+        # Verify new password works
+        self.assertTrue(self.client.login(username="settings_owner", password="NewOwnerPass999!"))
+
+    def test_owner_can_add_electronic_technician(self):
+        """Owner adds a new technician assigned to Electronic Repair."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_technician_add"), {
+            "username": "new_ecu_specialist",
+            "email": "ecu@ecarspace.local",
+            "phone_number": "07999888777",
+            "department": Department.ELECTRONIC,
+            "password": "SecurePassword123!",
+            "confirm_password": "SecurePassword123!",
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        new_tech = User.objects.get(username="new_ecu_specialist")
+        self.assertEqual(new_tech.profile.role, UserProfile.Role.TECHNICIAN)
+        self.assertEqual(new_tech.profile.department, Department.ELECTRONIC)
+        self.assertEqual(new_tech.profile.phone_number, "07999888777")
+
+    def test_owner_can_add_mechanical_technician(self):
+        """Owner adds a new technician assigned to Mechanical Repair."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_technician_add"), {
+            "username": "new_gearbox_specialist",
+            "email": "gearbox@ecarspace.local",
+            "phone_number": "07111222333",
+            "department": Department.MECHANICAL,
+            "password": "SecurePassword123!",
+            "confirm_password": "SecurePassword123!",
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        new_tech = User.objects.get(username="new_gearbox_specialist")
+        self.assertEqual(new_tech.profile.role, UserProfile.Role.TECHNICIAN)
+        self.assertEqual(new_tech.profile.department, Department.MECHANICAL)
+
+    def test_owner_can_delete_technician_and_unassign_jobs(self):
+        """Deleting a technician unassigns their active jobs safely and removes the user."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        tech_id = self.tech.id
+        response = self.client.post(reverse("owner_technician_delete", args=[tech_id]))
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertFalse(User.objects.filter(id=tech_id).exists())
+        self.job.refresh_from_db()
+        self.assertIsNone(self.job.assigned_technician)
+
+
+
 
 
 

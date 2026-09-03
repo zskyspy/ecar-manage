@@ -284,6 +284,22 @@ Notes / decisions
   * Added TwoDepartmentTests in jobs/tests.py (8 comprehensive tests covering navigation, intake, assignment rejection, and bidirectional 404 technician isolation)
   * Ran manage.py test jobs — all 65/65 tests passed on PostgreSQL
   * Verified live behavior via fast direct client verification (< 2 seconds): confirmed portal switching, independent intake, cross-assignment blocking, and bidirectional 404 technician isolation
+- Committed: 49e83e0
+
+[2026-09-03] Owner Settings & Workshop Technician Management
+- Owner Profile & Security (/owner/settings/):
+  * OwnerProfileForm: Edit personal first name, last name, email, and phone number
+  * PasswordChangeForm: Secure password change with confirmation; uses update_session_auth_hash to preserve login session
+  * Top navbar: Added "Settings" (gear icon) navigation link for Owner
+- Technician Management (Add / Remove / Roster):
+  * Technician Roster table: View all technicians with department badges (⚡ Electronic vs 🔧 Mechanical), phone, active assigned jobs count, and action controls
+  * OwnerAddTechnicianView (/owner/settings/technicians/add/): Onboard new technician with username, email, phone, password, and Department selector
+  * OwnerDeleteTechnicianView (/owner/settings/technicians/<pk>/delete/): Remove technician with automatic unassignment of active jobs (assigned_technician=None) to prevent orphaned work
+- Verification:
+  * Added OwnerSettingsAndTechManagementTests (7 comprehensive tests in jobs/tests.py)
+  * Ran manage.py test jobs — all 72/72 tests passed on PostgreSQL
+  * Fast direct client verification (< 2s) passed: profile updates, password change, adding electronic tech, adding mechanical tech, safe technician deletion with job unassignment, technician 403 protection
+
 
 
 

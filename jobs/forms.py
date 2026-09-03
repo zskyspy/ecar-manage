@@ -119,3 +119,48 @@ class StatusUpdateForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Add a note (optional)…"}),
         label="Note / Comment",
     )
+
+
+class OwnerProfileForm(forms.Form):
+    """Form for owner to edit personal info."""
+
+    first_name = forms.CharField(max_length=60, required=False, label="First Name")
+    last_name = forms.CharField(max_length=60, required=False, label="Last Name")
+    email = forms.EmailField(required=False, label="Email Address")
+    phone_number = forms.CharField(max_length=30, required=False, label="Phone Number")
+
+
+class TechnicianCreateForm(forms.Form):
+    """Form for owner to onboard a new technician into a specific department."""
+
+    username = forms.CharField(max_length=150, label="Username")
+    email = forms.EmailField(required=False, label="Email Address")
+    phone_number = forms.CharField(max_length=30, required=False, label="Phone Number")
+    department = forms.ChoiceField(
+        choices=Department.choices,
+        label="Service Department",
+        help_text="Choose whether this technician operates in Electronic Repair or Mechanical Repair.",
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(),
+        label="Temporary Password",
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(),
+        label="Confirm Password",
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError(f"Username '{username}' is already in use.")
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pwd = cleaned_data.get("password")
+        confirm = cleaned_data.get("confirm_password")
+        if pwd and confirm and pwd != confirm:
+            self.add_error("confirm_password", "Passwords do not match.")
+        return cleaned_data
+

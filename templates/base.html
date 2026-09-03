@@ -47,6 +47,11 @@
                                     <i class="bi bi-gear-wide-connected me-1 text-warning"></i>Mechanical Repair
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold px-3 py-1 rounded-2 text-dark" href="{% url 'owner_settings' %}">
+                                    <i class="bi bi-gear me-1 text-secondary"></i>Settings
+                                </a>
+                            </li>
                         {% elif user.profile.is_technician %}
                             <li class="nav-item">
                                 <a class="nav-link fw-medium text-dark px-3 py-1 rounded-2" href="{% url 'tech_dashboard' %}">

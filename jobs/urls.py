@@ -25,13 +25,21 @@ urlpatterns = [
     path("owner/", views.OwnerDashboardView.as_view(), name="owner_dashboard"),
     path("tech/", views.TechnicianDashboardView.as_view(), name="tech_dashboard"),
 
-    # ---- Owner Two-Department Portals ----
+    # ---- Owner Settings & Technician Management ----
+    path("owner/settings/", views.OwnerSettingsView.as_view(), name="owner_settings"),
+    path("owner/settings/password/", views.OwnerPasswordChangeView.as_view(), name="owner_password_change"),
+    path("owner/settings/technicians/add/", views.OwnerAddTechnicianView.as_view(), name="owner_technician_add"),
+    path("owner/settings/technicians/<int:pk>/delete/", views.OwnerDeleteTechnicianView.as_view(), name="owner_technician_delete"),
+
+    # ---- Owner Job Details & Actions ----
     path("owner/jobs/", views.OwnerDashboardView.as_view(), name="owner_job_list"),
-    path("owner/<str:department>/", views.DepartmentJobListView.as_view(), name="owner_department_jobs"),
-    path("owner/<str:department>/create/", views.DepartmentJobCreateView.as_view(), name="owner_department_job_create"),
     path("owner/jobs/<int:pk>/", views.OwnerJobDetailView.as_view(), name="owner_job_detail"),
     path("owner/jobs/<int:pk>/edit/", views.OwnerJobEditView.as_view(), name="owner_job_edit"),
     path("owner/jobs/<int:pk>/assign/", views.OwnerAssignTechnicianView.as_view(), name="owner_job_assign"),
+
+    # ---- Owner Two-Department Portals ----
+    path("owner/<str:department>/", views.DepartmentJobListView.as_view(), name="owner_department_jobs"),
+    path("owner/<str:department>/create/", views.DepartmentJobCreateView.as_view(), name="owner_department_job_create"),
 
     # ---- Technician Bay Management (Step 12) ----
     path("tech/jobs/<int:pk>/", views.TechJobDetailView.as_view(), name="tech_job_detail"),
