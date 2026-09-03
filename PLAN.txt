@@ -1,0 +1,69 @@
+Technical Build Order — Bottom to Top
+1. Environment Setup
+Install Python 3.11+, PostgreSQL, Git
+Create project folder + virtual environment
+Init git repo
+2. Database Layer
+Install PostgreSQL locally, create database
+Define schema: users, jobs, status_updates, vehicles (or fold into jobs), garages (even if just 1 for now — future-proofs multi-garage)
+Write raw SQL or ORM models (SQLAlchemy if FastAPI, Django ORM if Django)
+Set up migrations tool (Alembic for FastAPI, built-in for Django)
+Run first migration, confirm tables exist
+3. Backend Core Setup
+Install FastAPI/Django + Uvicorn/Gunicorn
+Create basic app skeleton, confirm "hello world" endpoint runs locally
+Connect app to Postgres, confirm DB read/write works via a test endpoint
+4. Auth Layer
+User model with role field (owner / technician)
+Password hashing (bcrypt/passlib)
+Login endpoint → issue JWT or session token
+Middleware/dependency to protect routes by role
+Test: owner login works, technician login works, wrong role blocked from wrong endpoints
+5. Core Job CRUD (no roles/logic yet — just data in/out)
+POST /jobs — create job
+GET /jobs — list jobs
+GET /jobs/{id} — job detail
+PATCH /jobs/{id} — edit job
+Test each with raw requests (Postman/curl) before touching frontend
+6. Assignment Logic
+Add assigned_technician_id to job
+Endpoint: owner assigns/reassigns technician to job
+Restrict this endpoint to owner role only
+Test: technician cannot call this endpoint
+7. Status Update Logic
+status_updates table: job_id, status, note, technician_id, timestamp
+Endpoint: technician posts a new status update (this becomes current job status)
+Endpoint: get status history for a job
+Restrict update-posting to the assigned technician only
+Test: unassigned technician can't update someone else's job
+8. Role-Scoped Views
+Owner: GET /jobs returns all jobs
+Technician: GET /jobs returns only jobs assigned to them
+Enforce this at query level, not frontend hiding
+9. Notes/Photos on Jobs (optional but useful — skip if you want leaner MVP)
+File upload endpoint (store locally or S3-compatible bucket later)
+Attach note/photo to a status update
+10. Frontend Foundation
+Choose stack: plain HTML/JS first (fastest), or React if you want it cleaner long-term
+Login page → stores token
+Route guard: redirect based on role after login
+11. Owner Frontend Views
+Job list (all jobs, filterable by status/technician)
+Create job form
+Assign/reassign technician dropdown
+Job detail view showing full status history
+12. Technician Frontend Views
+Job list (only their assigned jobs)
+Job detail view
+Status update form (dropdown + note field)
+13. Polish Pass
+Status badges/colors
+Basic responsive layout (phones matter — technicians will use this in the bay)
+Empty states, loading states, error messages
+14. Local Integration Test
+Full flow test: create job as owner → assign → login as technician → update status through each stage → owner sees updates reflected
+Fix bugs found here before exposing it externally
+15. External Access
+Install cloudflared, run tunnel pointing to your local port
+Test from your phone on mobile data (not same wifi) to confirm it's truly external
+Set Uvicorn/Gunicorn to run with multiple workers (--workers 4)

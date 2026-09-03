@@ -1,0 +1,71 @@
+1. Environment Setup
+Python 3.12 (Django 5.x requires 3.10+; 3.12 is the sweet spot for compatibility + speed)
+PostgreSQL 16
+Git
+VS Code (or your existing editor) + Cursor/Claude Code as the AI pair
+pyenv (optional, but locks your Python version so it matches prod later)
+python -m venv venv → virtual environment, always activate before installing anything
+2. Database Layer
+PostgreSQL 16 (local install, or Docker container if you want it isolated — docker run -p 5432:5432 postgres:16)
+psycopg2-binary — the Postgres driver Django needs to talk to it
+Django's built-in ORM (no separate ORM needed — this is the compatibility win: models, migrations, and admin all read the same model definitions natively)
+django-environ — manages your DB credentials via .env file (never hardcode DB passwords)
+3. Backend Core Setup
+Django 5.x (pip install django)
+django-environ for settings/env management
+django-admin startproject garageapp → project skeleton
+python manage.py startapp jobs → your core app
+Set DATABASES in settings.py to point at Postgres (via psycopg2)
+python manage.py runserver → confirm it boots
+python manage.py migrate → confirm default Django tables (auth, sessions) create fine in Postgres — this is your first real "DB + framework talk to each other" checkpoint
+4. Auth Layer
+Django's built-in auth app — already installed by default, gives you User model, password hashing (PBKDF2 by default, solid), login/logout views for free
+Extend Django's User model via a Profile model with a role field (owner/technician) — do not replace the built-in User, extend it (safer, stays compatible with everything else Django auth touches)
+django-rest-framework (DRF) — since your frontend will be separate (or even if server-rendered, DRF gives you clean API endpoints for technician status updates from mobile)
+djangorestframework-simplejwt — JWT auth plugin built specifically for DRF, so token auth is native to your API layer, not bolted on
+Test: /api/token/ issues JWT, protected endpoints reject bad/missing tokens
+5. Core Job CRUD
+Django REST Framework ModelSerializer + ModelViewSet — this is the compatibility win here: one class ties your DB model, validation, and API endpoint together, so there's no drift between what the DB stores and what the API returns
+django-filter — adds query filtering to DRF views for free (you'll want this later for owner filtering by status/technician anyway, build it in now)
+Test via Postman or Django's own DRF browsable API (comes free with DRF — you get a testable UI for every endpoint with zero extra setup)
+6. Assignment Logic
+Still DRF ModelViewSet, add a custom @action method for assign/reassign
+DRF Permissions classes (IsAdminUser or custom IsOwner permission class) — Django/DRF's permission system is built to compose with the auth layer from step 4 natively, so "owner-only" isn't custom middleware, it's a one-line permission class
+Test: technician token gets 403 on this endpoint
+7. Status Update Logic
+New Django model StatusUpdate (ForeignKey to Job, ForeignKey to technician User)
+DRF serializer + viewset, same pattern as step 5
+Custom permission: only the job's assigned_technician can POST an update — again, a DRF permission class, same system as step 6, no new pattern introduced
+django-simple-history (optional but genuinely useful) — auto-tracks model changes if you want audit history beyond just status updates
+8. Role-Scoped Views
+Override get_queryset() in your DRF ModelViewSet — filter by request.user.role — this is a native DRF pattern, not a workaround, so it stays consistent with everything above
+9. Notes/Photos on Jobs
+Pillow — Django's image handling depends on this for ImageField
+Local storage to start: Django's default FileSystemStorage (zero config, just works)
+Later (once you move to real hosting): swap to django-storages + S3-compatible bucket — this swap is designed to be a one-line settings change in Django, not a rewrite
+10. Frontend Foundation
+Two compatible paths — pick one, don't mix:
+Option A (fastest, most "flawlessly compatible" since it's zero-seam): Django's own templates + Django Template Language — server-rendered, no separate frontend framework, no CORS config, no API mismatch risk possible since it's the same app
+Option B (cleaner long-term, more moving parts): React (via Vite) as a fully separate frontend, talking to your DRF API — requires django-cors-headers to allow the frontend's origin to hit your API
+Given your timeline and "flawless compatibility" priority, I'd pick Option A (Django templates) for MVP. Zero integration risk, zero CORS headaches, one framework end to end. You can always peel off a React frontend later once the API is proven stable — the DRF API from steps 5-9 doesn't change either way.
+11. Owner Frontend Views (Django Templates path)
+Django Class-Based Views (ListView, CreateView, UpdateView) — these plug directly into your models from step 2, no serialization mismatch possible
+Bootstrap 5 (via CDN, zero build step) — fastest way to a clean, responsive UI without a JS build pipeline
+django-crispy-forms + crispy-bootstrap5 — makes Django forms render as clean Bootstrap forms automatically, keeps form validation server-side and consistent with your models
+12. Technician Frontend Views
+Same CBV + Bootstrap 5 pattern as step 11
+LoginRequiredMixin + custom TechnicianRequiredMixin on views — Django's mixin system composes cleanly with the auth from step 4
+13. Polish Pass
+Bootstrap 5 utility classes for badges/colors (already in your stack, no new dependency)
+django-widget-tweaks (optional) — finer control over form field rendering if crispy-forms feels too opinionated for something
+14. Local Integration Test
+Django's built-in test framework (TestCase, Client) — write a handful of end-to-end tests hitting your actual views, since it's built to work against your exact models/DB without mocking
+Manual click-through test as well, don't rely on automated tests alone at this stage
+15. External Access
+cloudflared (Cloudflare Tunnel)
+Gunicorn — swap out Django's dev server for this before exposing externally, even locally-tunneled; Django's runserver is explicitly not meant to be internet-facing
+gunicorn garageapp.wsgi:application --workers 4 --bind 127.0.0.1:8000, then tunnel points at that port
+whitenoise — serves your static files (CSS/JS) correctly under Gunicorn without needing a separate nginx just for statics
+16. Real-World Pilot
+No new tools — this phase is process, not stack
+Sentry (free tier) worth adding here — catches real errors from real usage that you won't see in local testing, and it's a 5-minute Django integration (sentry-sdk)

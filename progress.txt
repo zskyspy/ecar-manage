@@ -1,0 +1,47 @@
+GarageFlow — Build Progress Log
+================================
+Started: 2026-09-03
+
+[2026-09-03] Session start
+- Read PLAN.txt and dev TOOLS.txt to understand project scope and stack
+- Confirmed workspace contains planning docs only (no Django project yet)
+- Created this progress.txt file to track all work done
+- Ran environment check on user's machine:
+  * Python 3.14.4 — installed (Django 6.1 also already installed via pip)
+  * pip 26.1.2 — installed
+  * Git — NOT installed
+  * PostgreSQL (psql) — NOT installed
+  * Docker — NOT installed
+- Advised user on required manual installs before Step 1 can begin
+
+[2026-09-03] Rechecked tools after user install
+- Git 2.55.0.windows.5 — installed and working
+- PostgreSQL 18.6 — installed (not 16 as originally planned; 18 is fine)
+- Windows service postgresql-x64-18 — Running
+- psql.exe lives at C:\Program Files\PostgreSQL\18\bin\psql.exe
+- psql is NOT on PATH in PowerShell, so commands must use the full path (or add that bin folder to PATH)
+- Postgres login as user postgres succeeded
+- Created database: garageflow
+
+[2026-09-03] Steps 1–3: environment, DB, Django skeleton
+- Created Python venv at ./venv
+- Installed in venv: Django 6.1.1, django-environ 0.14.0, psycopg2-binary 2.9.12
+- Scaffolded Django project garageapp (manage.py at repo root)
+- Created Django app: jobs
+- Added .gitignore (venv, .env, pycache, etc.)
+- Added .env with local DB credentials (gitignored) and .env.example without secrets
+- Added requirements.txt
+- Pointed settings.py at PostgreSQL via django-environ (no hardcoded DB password in settings)
+- Registered jobs in INSTALLED_APPS
+- Added home (/) and health (/health/) endpoints; health hits SELECT 1 on Postgres
+- python manage.py check — no issues
+- python manage.py migrate — Django default tables created in garageflow DB
+- git init — empty repo created (no commit yet)
+- Confirmed locally: GET /health/ returns {"status":"ok","app":"GarageFlow","database":"connected"}
+- Confirmed locally: GET / returns "GarageFlow is running."
+- Dev server left running at http://127.0.0.1:8000/
+
+Notes / decisions
+- Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
+- PostgreSQL 18 used instead of 16 (what the installer provided)
+- DB password is only in .env, never in progress.txt or settings.py
