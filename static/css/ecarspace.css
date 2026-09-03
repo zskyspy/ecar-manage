@@ -151,8 +151,8 @@ body {
     padding: 0.7rem 1rem;
     border-radius: 12px;
     text-decoration: none;
-    color: #64748b;
-    font-weight: 500;
+    color: #000000;
+    font-weight: 600;
     font-size: 0.93rem;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     border: 1px solid transparent;
@@ -160,13 +160,13 @@ body {
 
 .sidebar-link i {
     font-size: 1.18rem;
-    color: #94a3b8;
+    color: #000000;
     transition: color 0.18s ease;
 }
 
 .sidebar-link:hover {
     background: #f1f5f9;
-    color: #0f172a;
+    color: #000000;
 }
 
 .sidebar-link:hover i {
@@ -176,8 +176,8 @@ body {
 /* Active State: Elevated White Pill with Soft Shadow (PeerPal style) */
 .sidebar-link.active {
     background: #ffffff;
-    color: #0f172a;
-    font-weight: 600;
+    color: #000000;
+    font-weight: 700;
     border-color: rgba(226, 232, 240, 0.9);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
@@ -185,6 +185,7 @@ body {
 .sidebar-link.active i {
     color: #0284c7;
 }
+
 
 /* Sidebar Guidance Card */
 .sidebar-guidance-card {
@@ -295,9 +296,9 @@ body {
 }
 
 .sidebar-user-name {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.88rem;
-    color: #0f172a;
+    color: #000000;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -306,15 +307,16 @@ body {
 
 .sidebar-user-role {
     font-size: 0.72rem;
-    color: #64748b;
+    color: #000000;
     font-family: 'JetBrains Mono', monospace;
     text-transform: uppercase;
+    font-weight: 600;
 }
 
 .sidebar-profile-btn {
     background: transparent;
     border: none;
-    color: #94a3b8;
+    color: #000000;
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
     font-size: 1.1rem;
@@ -322,9 +324,10 @@ body {
 }
 
 .sidebar-profile-btn:hover {
-    color: #0f172a;
+    color: #000000;
     background: #f1f5f9;
 }
+
 
 /* Mobile Header Bar */
 .ecar-mobile-bar {

@@ -80,12 +80,6 @@
                                     <span>Mechanical Repair</span>
                                 </a>
                             </li>
-                            <li class="sidebar-nav-item">
-                                <a class="sidebar-link {% if '/owner/settings/' in request.path %}active{% endif %}" href="{% url 'owner_settings' %}">
-                                    <i class="bi bi-gear"></i>
-                                    <span>Settings</span>
-                                </a>
-                            </li>
 
                         {% elif user.profile.is_technician %}
                             <!-- Technician Navigation -->
@@ -102,61 +96,46 @@
                                 </a>
                             </li>
                         {% endif %}
+
                     </ul>
 
-                    <!-- Guidance / Workshop Card (Matches reference widget) -->
-                    <div class="sidebar-guidance-card">
-                        <div class="sidebar-guidance-badge">
-                            <i class="bi bi-play-circle-fill"></i>
-                        </div>
-                        <div class="sidebar-guidance-title">Need some guidance?</div>
-                        <span class="text-muted d-block mb-2" style="font-size:0.75rem;">
-                            {% if user.profile.is_owner %}
-                                Dual-bay automotive telemetry & technician routing
-                            {% else %}
-                                {{ user.profile.get_department_display|default:"Workshop" }} diagnostics & stage tracking
-                            {% endif %}
-                        </span>
-                        <a href="{% if user.profile.is_owner %}{% url 'owner_settings' %}{% else %}{% url 'tech_settings' %}{% endif %}" class="sidebar-guidance-link">
-                            Discover tutorials <i class="bi bi-arrow-right" style="font-size:0.75rem;"></i>
-                        </a>
+                    <!-- Primary CTA Action (+ New Campaign / + New Job in reference) anchored to bottom -->
+                    <div class="mt-auto w-100 mb-2">
+                        {% if user.profile.is_owner %}
+                            <div class="dropdown w-100">
+                                <button class="btn btn-sidebar-cta dropdown-toggle" type="button" id="sidebarNewJobDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-plus-lg"></i>
+                                    <span>New Repair Job</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 p-2 w-100" aria-labelledby="sidebarNewJobDropdown">
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-2 d-flex align-items-center gap-2" href="{% url 'owner_department_job_create' 'electronic' %}">
+                                            <i class="bi bi-cpu text-primary fs-5"></i>
+                                            <div>
+                                                <div class="fw-semibold small">Electronic Repair Job</div>
+                                                <div class="text-muted" style="font-size:0.72rem;">ECU, sensors, wiring, software</div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item py-2 rounded-2 d-flex align-items-center gap-2" href="{% url 'owner_department_job_create' 'mechanical' %}">
+                                            <i class="bi bi-gear-wide-connected text-warning-emphasis fs-5"></i>
+                                            <div>
+                                                <div class="fw-semibold small">Mechanical Repair Job</div>
+                                                <div class="text-muted" style="font-size:0.72rem;">Engine, brakes, gearbox, suspension</div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'tech_dashboard' %}" class="btn btn-sidebar-cta text-decoration-none">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>Refresh Bay Jobs</span>
+                            </a>
+                        {% endif %}
                     </div>
-
-                    <!-- Primary CTA Action (+ New Campaign / + New Job in reference) -->
-                    {% if user.profile.is_owner %}
-                        <div class="dropdown w-100">
-                            <button class="btn btn-sidebar-cta dropdown-toggle" type="button" id="sidebarNewJobDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-plus-lg"></i>
-                                <span>New Repair Job</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 p-2 w-100" aria-labelledby="sidebarNewJobDropdown">
-                                <li>
-                                    <a class="dropdown-item py-2 rounded-2 d-flex align-items-center gap-2" href="{% url 'owner_department_job_create' 'electronic' %}">
-                                        <i class="bi bi-cpu text-primary fs-5"></i>
-                                        <div>
-                                            <div class="fw-semibold small">Electronic Repair Job</div>
-                                            <div class="text-muted" style="font-size:0.72rem;">ECU, sensors, wiring, software</div>
-                                        </div>
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider my-1"></li>
-                                <li>
-                                    <a class="dropdown-item py-2 rounded-2 d-flex align-items-center gap-2" href="{% url 'owner_department_job_create' 'mechanical' %}">
-                                        <i class="bi bi-gear-wide-connected text-warning-emphasis fs-5"></i>
-                                        <div>
-                                            <div class="fw-semibold small">Mechanical Repair Job</div>
-                                            <div class="text-muted" style="font-size:0.72rem;">Engine, brakes, gearbox, suspension</div>
-                                        </div>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    {% else %}
-                        <a href="{% url 'tech_dashboard' %}" class="btn btn-sidebar-cta text-decoration-none">
-                            <i class="bi bi-arrow-clockwise"></i>
-                            <span>Refresh Bay Jobs</span>
-                        </a>
-                    {% endif %}
 
                     <!-- Profile Footer Row (Avatar + Name + Dropdown Options) -->
                     <div class="sidebar-profile-footer">
