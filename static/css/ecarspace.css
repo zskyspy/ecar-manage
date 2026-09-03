@@ -31,7 +31,7 @@ body {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
 }
 
-/* Glassmorphic Navbar */
+/* Glassmorphic Navbar (legacy / mobile header) */
 .ecar-nav {
     position: sticky;
     top: 0;
@@ -41,6 +41,308 @@ body {
     -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
     transition: border-color 0.2s var(--ease);
+}
+
+/* ==========================================================================
+   Modern App Sidebar Layout (PeerPal Reference Aesthetic)
+   ========================================================================== */
+
+.ecar-layout-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-2);
+}
+
+.ecar-layout-wrapper.ecar-layout-unauth {
+    flex-direction: column;
+}
+
+@media (max-width: 991.98px) {
+    .ecar-layout-wrapper {
+        flex-direction: column;
+    }
+}
+
+
+/* Sidebar Column */
+.ecar-sidebar {
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+    background: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 991.98px) {
+    .ecar-sidebar {
+        width: 280px;
+        min-width: 280px;
+        max-width: 280px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1045;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+}
+
+.ecar-sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem 1.15rem 1.25rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Brand Header */
+.sidebar-brand-container {
+    padding: 0.25rem 0.5rem 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+}
+
+.sidebar-brand-container .brand-logo {
+    width: 38px;
+    height: 38px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.sidebar-brand-text {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0284c7; /* Vibrant PeerPal Blue */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.1;
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sidebar-nav-item {
+    width: 100%;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #64748b;
+    font-weight: 500;
+    font-size: 0.93rem;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid transparent;
+}
+
+.sidebar-link i {
+    font-size: 1.18rem;
+    color: #94a3b8;
+    transition: color 0.18s ease;
+}
+
+.sidebar-link:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.sidebar-link:hover i {
+    color: #0284c7;
+}
+
+/* Active State: Elevated White Pill with Soft Shadow (PeerPal style) */
+.sidebar-link.active {
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 600;
+    border-color: rgba(226, 232, 240, 0.9);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sidebar-link.active i {
+    color: #0284c7;
+}
+
+/* Sidebar Guidance Card */
+.sidebar-guidance-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.6rem 1rem 1.15rem;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    margin-top: auto;
+    margin-bottom: 1.25rem;
+}
+
+.sidebar-guidance-badge {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 34px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    color: #0284c7;
+    font-size: 1.05rem;
+}
+
+.sidebar-guidance-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+}
+
+.sidebar-guidance-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0284c7;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sidebar-guidance-link:hover {
+    color: #0369a1;
+    text-decoration: underline;
+}
+
+/* Sidebar CTA Primary Button (+ New Campaign / + New Job) */
+.btn-sidebar-cta {
+    background: #0284c7;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.94rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28);
+    transition: all 0.18s ease;
+    width: 100%;
+}
+
+.btn-sidebar-cta:hover, .btn-sidebar-cta:focus {
+    background: #0369a1;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.38);
+    transform: translateY(-1px);
+}
+
+/* Sidebar Profile Footer */
+.sidebar-profile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.sidebar-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e0f2fe;
+    color: #0284c7;
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid #bae6fd;
+}
+
+.sidebar-user-info {
+    flex-grow: 1;
+    margin-left: 0.65rem;
+    min-width: 0;
+}
+
+.sidebar-user-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.sidebar-user-role {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+}
+
+.sidebar-profile-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.sidebar-profile-btn:hover {
+    color: #0f172a;
+    background: #f1f5f9;
+}
+
+/* Mobile Header Bar */
+.ecar-mobile-bar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1010;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Main App Content Area */
+.ecar-main-content {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .brand-title {
@@ -59,6 +361,7 @@ body {
     border-radius: 8px;
     border: 1px solid var(--line);
 }
+
 
 /* Cards & Surfaces */
 .ecar-card {

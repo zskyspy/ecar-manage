@@ -328,6 +328,25 @@ Notes / decisions
   * Added TechnicianSettingsTests (6 tests in jobs/tests.py)
   * Ran manage.py test jobs — all 82/82 tests passed on PostgreSQL
   * Fast direct client verification (< 2s) passed: access check, profile update, password change with re-auth, owner 403 protection
+- Committed: 3e9d8ce
+
+[2026-09-03] Modern Vertical Sidebar (PeerPal Reference Style)
+- Replaced horizontal navbar with a sleek, modern vertical sidebar based on the reference design:
+  * Brand Header: Logo image + bold "ECAR Space" in vibrant cyan/blue (#0284c7)
+  * Navigation Links: Clean outline icons + text labels
+    - Active State: Floating elevated white pill with soft drop-shadow, colored active icon, and dark bold text
+    - Inactive State: Muted slate with smooth hover pill transitions
+    - Owner routes: Dashboard, Electronic Repair, Mechanical Repair, Settings
+    - Technician routes: Bay View, Settings
+  * Guidance Widget: Centered floating play/diagnostic badge, "Need some guidance?", and "Discover tutorials" link
+  * Primary CTA Button: Vibrant rounded blue button ("+ New Repair Job" with dropdown to create Electronic or Mechanical jobs)
+  * Profile Footer: User avatar initial circle, full name/username, role caption, and 3-dots dropdown menu (Profile, Settings, Logout)
+- Mobile Responsiveness: Native Bootstrap 5 responsive offcanvas (offcanvas-lg offcanvas-start) with top header and hamburger toggle on small screens
+- Unauthenticated View: Clean minimal layout on /login/ without empty sidebar
+- Verification:
+  * Fast direct client verification (< 2s) passed across unauth /login/, owner views, and tech views
+  * Ran manage.py test jobs — all 82/82 tests passed on PostgreSQL
+
 
 
 
