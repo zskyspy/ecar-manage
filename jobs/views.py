@@ -252,8 +252,17 @@ class OwnerDashboardView(OwnerRequiredMixin, View):
         now = datetime.datetime.now()
         greeting_time = "Good morning" if now.hour < 12 else "Good afternoon"
 
+        from .models import StatusUpdate
+        recent_updates = list(
+            StatusUpdate.objects.select_related("job", "technician", "technician__profile")
+            .order_by("-created_at")[:15]
+        )
+        recent_updates_count = len(recent_updates)
+
         return render(request, self.template_name, {
             "greeting_time": greeting_time,
+            "recent_updates": recent_updates,
+            "recent_updates_count": recent_updates_count,
             "jobs": qs,
             "total_jobs": total_jobs,
             "in_progress": in_progress,

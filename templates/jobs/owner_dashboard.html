@@ -13,13 +13,103 @@
             Welcome back to your Workshop Operations Dashboard. Dual-bay telemetry and live jobs feed.
         </p>
     </div>
-    <div class="d-flex align-items-center gap-2 pt-1">
-        <a href="{% url 'owner_department_jobs' 'electronic' %}" class="btn btn-sm btn-ecar-secondary border">
-            <i class="bi bi-cpu text-primary me-1"></i>Electronic Bay
-        </a>
-        <a href="{% url 'owner_department_jobs' 'mechanical' %}" class="btn btn-sm btn-ecar-secondary border">
-            <i class="bi bi-gear-wide-connected text-warning-emphasis me-1"></i>Mechanical Bay
-        </a>
+    <!-- Notifications Dropdown -->
+    <div class="dropdown pt-1">
+        <button class="btn btn-white border rounded-3 p-2 d-flex align-items-center justify-content-center position-relative shadow-sm"
+                type="button"
+                id="notificationsDropdown"
+                data-bs-toggle="dropdown"
+                data-bs-auto-close="true"
+                aria-expanded="false"
+                title="Recent updates"
+                style="width: 42px; height: 42px; background: #ffffff;">
+            <i class="bi bi-bell-fill text-dark fs-5"></i>
+            {% if recent_updates_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                    {{ recent_updates_count }}
+                    <span class="visually-hidden">recent updates</span>
+                </span>
+            {% endif %}
+        </button>
+
+        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-0 mt-2"
+             aria-labelledby="notificationsDropdown"
+             style="width: 390px; max-width: 90vw; z-index: 1060;">
+            
+            <!-- Header -->
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light rounded-top-4">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bell-fill text-primary"></i>
+                    <h6 class="fw-bold mb-0">Recent Activity</h6>
+                </div>
+                {% if recent_updates_count > 0 %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle mono font-mono" style="font-size: 0.68rem;">
+                        {{ recent_updates_count }} update{{ recent_updates_count|pluralize }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Scrollable Notifications List -->
+            <div style="max-height: 380px; overflow-y: auto;">
+                {% for update in recent_updates %}
+                    <a href="{% url 'owner_job_detail' update.job.pk %}" class="d-block p-3 border-bottom text-decoration-none text-dark hover-notification">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="ecar-plate" style="font-size: 0.72rem; padding: 1px 6px;">{{ update.job.license_plate }}</span>
+                                <span class="badge {% if update.job.department == 'electronic' %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-warning-subtle text-warning-emphasis border-warning-subtle{% endif %} border mono" style="font-size: 0.62rem;">
+                                    {{ update.job.get_department_display|upper }}
+                                </span>
+                            </div>
+                            <span class="text-muted small mono" style="font-size: 0.68rem;">
+                                {{ update.created_at|timesince }} ago
+                            </span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            {% if update.status == 'completed' %}
+                                <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                            {% elif update.status == 'in_progress' %}
+                                <i class="bi bi-gear-fill text-warning fs-6"></i>
+                            {% elif update.status == 'waiting_parts' %}
+                                <i class="bi bi-hourglass-split text-danger fs-6"></i>
+                            {% elif update.status == 'cancelled' %}
+                                <i class="bi bi-x-circle-fill text-secondary fs-6"></i>
+                            {% else %}
+                                <i class="bi bi-clock-fill text-info fs-6"></i>
+                            {% endif %}
+                            <div class="small fw-semibold text-dark">
+                                Status changed to <span class="badge-status-{{ update.status }}" style="font-size: 0.68rem;">{{ update.get_status_display }}</span>
+                            </div>
+                        </div>
+
+                        {% if update.note %}
+                            <p class="small text-secondary mb-1 mt-1 text-truncate" style="font-size: 0.75rem;">
+                                <i class="bi bi-chat-left-text me-1"></i>"{{ update.note }}"
+                            </p>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-1 border-top" style="font-size: 0.68rem; border-color: rgba(0,0,0,0.05) !important;">
+                            <span class="text-muted">
+                                <i class="bi bi-person me-1"></i>{{ update.technician.get_full_name|default:update.technician.username|default:"Technician" }}
+                            </span>
+                            <span class="text-muted">{{ update.job.vehicle_make }} {{ update.job.vehicle_model }}</span>
+                        </div>
+                    </a>
+                {% empty %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-bell-slash fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                        <span class="stat-label">No technician updates recorded yet.</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Footer -->
+            <div class="p-2 text-center bg-light border-top rounded-bottom-4">
+                <a href="#jobs-feed" class="stat-label text-decoration-none small" style="font-size: 0.72rem;">
+                    <i class="bi bi-arrow-down-circle me-1"></i>View All Workshop Jobs Below
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 

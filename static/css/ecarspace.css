@@ -541,3 +541,10 @@ body {
 .cursor-pointer {
     cursor: pointer;
 }
+
+.hover-notification {
+    transition: background-color 0.15s ease-in-out;
+}
+.hover-notification:hover {
+    background-color: #f8fafc;
+}
