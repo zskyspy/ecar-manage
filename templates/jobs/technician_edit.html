@@ -20,9 +20,9 @@
                     <p class="stat-label mb-0">Update contact info and department assignment for <span class="mono fw-bold text-dark">{{ tech.username }}</span></p>
                 </div>
                 {% if tech.profile.department == 'electronic' %}
-                    <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">ELECTRONIC</span>
+                    <span class="dept-tag-elect fs-5">// Elect</span>
                 {% elif tech.profile.department == 'mechanical' %}
-                    <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">MECHANICAL</span>
+                    <span class="dept-tag-mech fs-5">// Mech</span>
                 {% endif %}
             </div>
 

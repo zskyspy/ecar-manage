@@ -154,7 +154,7 @@
                                 {% if user.profile.is_owner %}
                                     Shop Owner
                                 {% elif user.profile.is_technician %}
-                                    Tech • {{ user.profile.get_department_display|default:"Bay" }}
+                                    Tech • {% if user.profile.department == 'electronic' %}<span class="dept-tag-elect">// Elect</span>{% elif user.profile.department == 'mechanical' %}<span class="dept-tag-mech">// Mech</span>{% else %}{{ user.profile.get_department_display|default:"Bay" }}{% endif %}
                                 {% endif %}
                             </div>
                         </div>

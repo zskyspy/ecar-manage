@@ -56,9 +56,11 @@
                         <div class="d-flex justify-content-between align-items-start mb-1">
                             <div class="d-flex align-items-center gap-1">
                                 <span class="ecar-plate" style="font-size: 0.72rem; padding: 1px 6px;">{{ update.job.license_plate }}</span>
-                                <span class="badge {% if update.job.department == 'electronic' %}bg-primary-subtle text-primary border-primary-subtle{% else %}bg-warning-subtle text-warning-emphasis border-warning-subtle{% endif %} border mono" style="font-size: 0.62rem;">
-                                    {{ update.job.get_department_display|upper }}
-                                </span>
+                                {% if update.job.department == 'electronic' %}
+                                    <span class="dept-tag-elect" style="font-size: 0.72rem;">// Elect</span>
+                                {% else %}
+                                    <span class="dept-tag-mech" style="font-size: 0.72rem;">// Mech</span>
+                                {% endif %}
                             </div>
                             <span class="text-muted small mono" style="font-size: 0.68rem;">
                                 {{ update.created_at|timesince }} ago
@@ -336,13 +338,9 @@
                         <td class="mono fw-bold text-muted" style="font-size:0.8rem;">#{{ job.id }}</td>
                         <td>
                             {% if job.department == 'electronic' %}
-                                <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">
-                                    <i class="bi bi-cpu me-1"></i>ELECTRONIC
-                                </span>
+                                <span class="dept-tag-elect" style="font-size: 0.85rem;">// Elect</span>
                             {% elif job.department == 'mechanical' %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">
-                                    <i class="bi bi-gear-wide-connected me-1"></i>MECHANICAL
-                                </span>
+                                <span class="dept-tag-mech" style="font-size: 0.85rem;">// Mech</span>
                             {% else %}
                                 <span class="badge bg-secondary mono">GENERAL</span>
                             {% endif %}

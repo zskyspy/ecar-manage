@@ -548,3 +548,18 @@ body {
 .hover-notification:hover {
     background-color: #f8fafc;
 }
+
+/* Department // Elect and // Mech tags */
+.dept-tag-elect {
+    color: #2563eb !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.dept-tag-mech {
+    color: #d97706 !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
