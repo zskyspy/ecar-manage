@@ -179,10 +179,105 @@ class DashboardRedirectView(LoginRequiredMixin, View):
 
 
 class OwnerDashboardView(OwnerRequiredMixin, View):
-    """Owner portal home: redirect straight to the Electronic department portal."""
+    """
+    Owner operations portal:
+    - High-level workshop analytics across BOTH departments (Electronic & Mechanical)
+    - Department-specific breakdowns (jobs by status, active technicians)
+    - Cross-department job feed with filtering by department, status, technician, and plate
+    """
+
+    template_name = "jobs/owner_dashboard.html"
 
     def get(self, request):
-        return redirect("owner_department_jobs", department="electronic")
+        from django.contrib.auth.models import User as DjangoUser
+
+        all_jobs = Job.objects.select_related("assigned_technician", "created_by").order_by("-created_at")
+
+        # Cross-department Analytics
+        total_jobs = all_jobs.count()
+        in_progress = all_jobs.filter(status=Job.Status.IN_PROGRESS).count()
+        waiting_parts = all_jobs.filter(status=Job.Status.WAITING_PARTS).count()
+        completed = all_jobs.filter(status=Job.Status.COMPLETED).count()
+        pending = all_jobs.filter(status=Job.Status.PENDING).count()
+        cancelled = all_jobs.filter(status=Job.Status.CANCELLED).count()
+
+        # Electronic department breakdown
+        elec_jobs = all_jobs.filter(department=Department.ELECTRONIC)
+        elec_total = elec_jobs.count()
+        elec_in_progress = elec_jobs.filter(status=Job.Status.IN_PROGRESS).count()
+        elec_waiting_parts = elec_jobs.filter(status=Job.Status.WAITING_PARTS).count()
+        elec_completed = elec_jobs.filter(status=Job.Status.COMPLETED).count()
+        elec_techs_count = UserProfile.objects.filter(
+            role=UserProfile.Role.TECHNICIAN, department=Department.ELECTRONIC
+        ).count()
+
+        # Mechanical department breakdown
+        mech_jobs = all_jobs.filter(department=Department.MECHANICAL)
+        mech_total = mech_jobs.count()
+        mech_in_progress = mech_jobs.filter(status=Job.Status.IN_PROGRESS).count()
+        mech_waiting_parts = mech_jobs.filter(status=Job.Status.WAITING_PARTS).count()
+        mech_completed = mech_jobs.filter(status=Job.Status.COMPLETED).count()
+        mech_techs_count = UserProfile.objects.filter(
+            role=UserProfile.Role.TECHNICIAN, department=Department.MECHANICAL
+        ).count()
+
+        total_techs = elec_techs_count + mech_techs_count
+
+        # Filtering for All Jobs feed
+        qs = all_jobs
+        dept_filter = request.GET.get("department", "").strip().lower()
+        status_filter = request.GET.get("status", "").strip()
+        tech_filter = request.GET.get("technician", "").strip()
+        plate_filter = request.GET.get("plate", "").strip()
+
+        if dept_filter in [Department.ELECTRONIC, Department.MECHANICAL]:
+            qs = qs.filter(department=dept_filter)
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        if tech_filter == "unassigned":
+            qs = qs.filter(assigned_technician__isnull=True)
+        elif tech_filter:
+            qs = qs.filter(assigned_technician__username=tech_filter)
+        if plate_filter:
+            qs = qs.filter(license_plate__icontains=plate_filter)
+
+        # All technicians for dropdown
+        technicians = (
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN)
+            .select_related("profile")
+            .order_by("profile__department", "username")
+        )
+
+        return render(request, self.template_name, {
+            "jobs": qs,
+            "total_jobs": total_jobs,
+            "in_progress": in_progress,
+            "waiting_parts": waiting_parts,
+            "completed": completed,
+            "pending": pending,
+            "cancelled": cancelled,
+            "total_techs": total_techs,
+
+            "elec_total": elec_total,
+            "elec_in_progress": elec_in_progress,
+            "elec_waiting_parts": elec_waiting_parts,
+            "elec_completed": elec_completed,
+            "elec_techs_count": elec_techs_count,
+
+            "mech_total": mech_total,
+            "mech_in_progress": mech_in_progress,
+            "mech_waiting_parts": mech_waiting_parts,
+            "mech_completed": mech_completed,
+            "mech_techs_count": mech_techs_count,
+
+            "technicians": technicians,
+            "selected_department": dept_filter,
+            "selected_status": status_filter,
+            "selected_tech": tech_filter,
+            "plate_query": plate_filter,
+            "status_choices": Job.Status.choices,
+        })
+
 
 
 class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
@@ -292,8 +387,15 @@ class DepartmentJobCreateView(OwnerRequiredMixin, View):
             job.department = department
             job.created_by = request.user
             job.save()
-            messages.success(request, f"Job #{job.id} registered under {job.get_department_display()}.")
+            if job.assigned_technician:
+                messages.success(
+                    request,
+                    f"Job #{job.id} registered under {job.get_department_display()} and assigned to {job.assigned_technician.username}.",
+                )
+            else:
+                messages.success(request, f"Job #{job.id} registered under {job.get_department_display()}.")
             return redirect("owner_job_detail", pk=job.pk)
+
         dept_display = "Electronic Repair" if department == Department.ELECTRONIC else "Mechanical Repair"
         return render(request, self.template_name, {
             "form": form,
@@ -481,18 +583,38 @@ class OwnerSettingsView(OwnerRequiredMixin, View):
             messages.success(request, "Owner profile details updated successfully.")
             return redirect("owner_settings")
 
+        return render(request, self.template_name, {
+            "profile_form": form,
+            "password_form": PasswordChangeForm(request.user),
+        })
+
+
+class OwnerTechniciansView(OwnerRequiredMixin, View):
+    """
+    Dedicated owner section to view, add, edit, and remove workshop technicians.
+    """
+
+    template_name = "jobs/owner_technicians.html"
+
+    def get(self, request):
         from django.contrib.auth.models import User as DjangoUser
         from django.db.models import Count
+
         technicians = (
             DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN)
             .select_related("profile")
             .annotate(active_jobs_count=Count("assigned_jobs"))
             .order_by("profile__department", "username")
         )
+
+        elec_count = sum(1 for t in technicians if getattr(t.profile, "department", None) == Department.ELECTRONIC)
+        mech_count = sum(1 for t in technicians if getattr(t.profile, "department", None) == Department.MECHANICAL)
+
         return render(request, self.template_name, {
-            "profile_form": form,
-            "password_form": PasswordChangeForm(request.user),
             "technicians": technicians,
+            "total_techs": technicians.count(),
+            "elec_count": elec_count,
+            "mech_count": mech_count,
         })
 
 
@@ -550,7 +672,7 @@ class OwnerAddTechnicianView(OwnerRequiredMixin, View):
                 request,
                 f"Technician '{user.username}' successfully registered to {user.profile.get_department_display()}.",
             )
-            return redirect("owner_settings")
+            return redirect("owner_technicians")
 
         return render(request, self.template_name, {"form": form})
 
@@ -569,7 +691,7 @@ class OwnerDeleteTechnicianView(OwnerRequiredMixin, View):
         Job.objects.filter(assigned_technician=tech).update(assigned_technician=None)
         tech.delete()
         messages.success(request, f"Technician '{tech_name}' removed and active jobs unassigned.")
-        return redirect("owner_settings")
+        return redirect("owner_technicians")
 
 
 class OwnerEditTechnicianView(OwnerRequiredMixin, View):
@@ -634,7 +756,8 @@ class OwnerEditTechnicianView(OwnerRequiredMixin, View):
             else:
                 messages.success(request, f"Technician '{tech.username}' details updated successfully.")
 
-            return redirect("owner_settings")
+            return redirect("owner_technicians")
+
 
         active_jobs_count = tech.assigned_jobs.count()
         return render(request, self.template_name, {

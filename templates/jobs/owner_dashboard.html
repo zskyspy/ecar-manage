@@ -1,103 +1,308 @@
 {% extends "base.html" %}
 
-{% block title %}Owner Portal — ECAR Space{% endblock %}
-
+{% block title %}Workshop Operations Dashboard — ECAR Space{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
-        <h2 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-warning me-2"></i>Owner Operations Portal</h2>
-        <p class="text-muted mb-0">Overview of all active jobs, bay assignments, and workshop throughput.</p>
+        <h2 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-primary me-2"></i>Workshop Operations Dashboard</h2>
+        <p class="stat-label mb-0">Live cross-department telemetry, dual-bay throughput analytics, and complete jobs feed.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'owner_department_jobs' 'electronic' %}" class="btn btn-sm btn-ecar-secondary border">
+            <i class="bi bi-cpu text-primary me-1"></i>Electronic Bay
+        </a>
+        <a href="{% url 'owner_department_jobs' 'mechanical' %}" class="btn btn-sm btn-ecar-secondary border">
+            <i class="bi bi-gear-wide-connected text-warning-emphasis me-1"></i>Mechanical Bay
+        </a>
     </div>
 </div>
 
+<!-- High-Level Workshop Summary Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card ecar-card p-3 rounded-3 border-0">
+            <div class="stat-label">Total Workshop Jobs</div>
+            <div class="stat-num mt-2">{{ total_jobs }}</div>
+            <span class="mono text-muted small mt-1" style="font-size:0.7rem;">Across both repair bays</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card ecar-card p-3 rounded-3 border-0">
+            <div class="stat-label text-warning" style="color: #b45309 !important;">In Progress</div>
+            <div class="stat-num mt-2">{{ in_progress }}</div>
+            <span class="mono text-muted small mt-1" style="font-size:0.7rem;">Active on bay lifts</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card ecar-card p-3 rounded-3 border-0">
+            <div class="stat-label text-danger" style="color: #b91c1c !important;">Waiting Parts</div>
+            <div class="stat-num mt-2">{{ waiting_parts }}</div>
+            <span class="mono text-muted small mt-1" style="font-size:0.7rem;">Awaiting components</span>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card ecar-card p-3 rounded-3 border-0">
+            <div class="stat-label text-success" style="color: #15803d !important;">Completed</div>
+            <div class="stat-num mt-2">{{ completed }}</div>
+            <span class="mono text-muted small mt-1" style="font-size:0.7rem;">Serviced & ready</span>
+        </div>
+    </div>
+</div>
+
+<!-- Department Analytics: Dual Bay Comparison Cards -->
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-4 border-primary">
-            <div class="text-muted small text-uppercase fw-semibold">Active Jobs</div>
-            <div class="h3 fw-bold mb-0 mt-2">{{ total_jobs|default:0 }}</div>
+    <!-- Electronic Repair Bay Analytics -->
+    <div class="col-12 col-lg-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">
+                        <i class="bi bi-cpu me-1"></i>ELECTRONIC DEPT
+                    </span>
+                    <h5 class="fw-bold mb-0">Electronic Bay Analytics</h5>
+                </div>
+                <a href="{% url 'owner_department_jobs' 'electronic' %}" class="btn btn-sm btn-outline-primary py-1 px-2 mono" style="font-size:0.75rem;">
+                    Bay View <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row g-2 text-center mb-3">
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label" style="font-size:0.65rem;">Total</div>
+                        <div class="fw-bold fs-4 text-dark mt-1">{{ elec_total }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-warning" style="font-size:0.65rem;">In Progress</div>
+                        <div class="fw-bold fs-4 text-warning mt-1">{{ elec_in_progress }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-danger" style="font-size:0.65rem;">Parts</div>
+                        <div class="fw-bold fs-4 text-danger mt-1">{{ elec_waiting_parts }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-success" style="font-size:0.65rem;">Done</div>
+                        <div class="fw-bold fs-4 text-success mt-1">{{ elec_completed }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top text-muted small mono">
+                <span><i class="bi bi-people me-1"></i>Active Technicians: <strong class="text-dark">{{ elec_techs_count }}</strong></span>
+                <a href="{% url 'owner_department_job_create' 'electronic' %}" class="text-primary text-decoration-none fw-semibold">
+                    <i class="bi bi-plus-circle me-1"></i>+ New Electronic Job
+                </a>
+            </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-4 border-warning">
-            <div class="text-muted small text-uppercase fw-semibold">In Progress</div>
-            <div class="h3 fw-bold mb-0 mt-2">{{ in_progress_jobs|default:0 }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-4 border-info">
-            <div class="text-muted small text-uppercase fw-semibold">Pending Assignment</div>
-            <div class="h3 fw-bold mb-0 mt-2">{{ unassigned_jobs|default:0 }}</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm bg-white p-3 rounded-3 border-start border-4 border-success">
-            <div class="text-muted small text-uppercase fw-semibold">Completed</div>
-            <div class="h3 fw-bold mb-0 mt-2">{{ completed_jobs|default:0 }}</div>
+
+    <!-- Mechanical Repair Bay Analytics -->
+    <div class="col-12 col-lg-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">
+                        <i class="bi bi-gear-wide-connected me-1"></i>MECHANICAL DEPT
+                    </span>
+                    <h5 class="fw-bold mb-0">Mechanical Bay Analytics</h5>
+                </div>
+                <a href="{% url 'owner_department_jobs' 'mechanical' %}" class="btn btn-sm btn-outline-warning text-dark py-1 px-2 mono" style="font-size:0.75rem;">
+                    Bay View <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+            <div class="row g-2 text-center mb-3">
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label" style="font-size:0.65rem;">Total</div>
+                        <div class="fw-bold fs-4 text-dark mt-1">{{ mech_total }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-warning" style="font-size:0.65rem;">In Progress</div>
+                        <div class="fw-bold fs-4 text-warning mt-1">{{ mech_in_progress }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-danger" style="font-size:0.65rem;">Parts</div>
+                        <div class="fw-bold fs-4 text-danger mt-1">{{ mech_waiting_parts }}</div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="stat-label text-success" style="font-size:0.65rem;">Done</div>
+                        <div class="fw-bold fs-4 text-success mt-1">{{ mech_completed }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top text-muted small mono">
+                <span><i class="bi bi-people me-1"></i>Active Technicians: <strong class="text-dark">{{ mech_techs_count }}</strong></span>
+                <a href="{% url 'owner_department_job_create' 'mechanical' %}" class="text-dark text-decoration-none fw-semibold">
+                    <i class="bi bi-plus-circle me-1"></i>+ New Mechanical Job
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="card border-0 shadow-sm rounded-3">
-    <div class="card-header bg-white py-3 border-0">
-        <h5 class="mb-0 fw-bold">Workshop Jobs Overview</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Vehicle</th>
-                        <th>Plate</th>
-                        <th>Customer</th>
-                        <th>Status</th>
-                        <th>Technician</th>
-                        <th>Created</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for job in jobs %}
-                        <tr>
-                            <td class="ps-4 fw-bold text-muted">#{{ job.id }}</td>
-                            <td class="fw-semibold">{{ job.vehicle_make }} {{ job.vehicle_model }}</td>
-                            <td><span class="badge bg-light text-dark border font-monospace">{{ job.license_plate }}</span></td>
-                            <td>{{ job.customer_name }}</td>
-                            <td>
-                                {% if job.status == 'completed' %}
-                                    <span class="badge bg-success">Completed</span>
-                                {% elif job.status == 'in_progress' %}
-                                    <span class="badge bg-warning text-dark">In Progress</span>
-                                {% elif job.status == 'waiting_parts' %}
-                                    <span class="badge bg-danger">Waiting Parts</span>
-                                {% elif job.status == 'cancelled' %}
-                                    <span class="badge bg-secondary">Cancelled</span>
-                                {% else %}
-                                    <span class="badge bg-info text-dark">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if job.assigned_technician %}
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                        <i class="bi bi-person me-1"></i>{{ job.assigned_technician.username }}
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-light text-muted border">Unassigned</span>
-                                {% endif %}
-                            </td>
-                            <td class="small text-muted">{{ job.created_at|date:"M d, H:i" }}</td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
-                                No jobs recorded in the system yet.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- All Jobs Across Both Departments -->
+<div class="card ecar-card rounded-4 border-0 p-4">
+    <!-- Section Header & Filter Form -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold mb-0">All Workshop Repair Jobs</h5>
+            <span class="stat-label" style="font-size:0.68rem;">Unified Cross-Department Operations Stream</span>
         </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-dark border mono">{{ jobs|length }} of {{ total_jobs }} jobs shown</span>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="get" action="{% url 'owner_job_list' %}" class="row g-2 mb-4 p-3 rounded-3 bg-light border align-items-center">
+        <!-- Department Filter -->
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Department</label>
+            <select name="department" class="form-select form-select-sm border">
+                <option value="">All Departments</option>
+                <option value="electronic" {% if selected_department == 'electronic' %}selected{% endif %}>⚡ Electronic Repair</option>
+                <option value="mechanical" {% if selected_department == 'mechanical' %}selected{% endif %}>🔧 Mechanical Repair</option>
+            </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Status</label>
+            <select name="status" class="form-select form-select-sm border">
+                <option value="">All Statuses</option>
+                {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Technician Filter -->
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Technician</label>
+            <select name="technician" class="form-select form-select-sm border">
+                <option value="">All Techs</option>
+                <option value="unassigned" {% if selected_tech == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                {% for tech in technicians %}
+                    <option value="{{ tech.username }}" {% if selected_tech == tech.username %}selected{% endif %}>
+                        {{ tech.username }} ({{ tech.profile.department|slice:":4"|upper }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Plate Search -->
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="stat-label mb-1 d-block" style="font-size:0.65rem;">Plate Search</label>
+            <input type="text" name="plate" class="form-control form-select-sm border mono" placeholder="e.g. AB12 CDE" value="{{ plate_query }}">
+        </div>
+
+        <!-- Submit & Reset -->
+        <div class="col-12 col-md-1 d-flex gap-1 align-self-end">
+            <button type="submit" class="btn btn-sm btn-ecar-primary w-100 py-1" title="Apply Filter">
+                <i class="bi bi-funnel"></i>
+            </button>
+            <a href="{% url 'owner_job_list' %}" class="btn btn-sm btn-ecar-secondary border py-1" title="Reset Filters">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        </div>
+    </form>
+
+    <!-- Jobs Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background-color: var(--bg-3); border-bottom: 1px solid var(--line);">
+                <tr>
+                    <th class="stat-label py-3">ID</th>
+                    <th class="stat-label py-3">Department</th>
+                    <th class="stat-label py-3">Plate</th>
+                    <th class="stat-label py-3">Vehicle</th>
+                    <th class="stat-label py-3">Status</th>
+                    <th class="stat-label py-3">Assigned Tech</th>
+                    <th class="stat-label py-3">Created</th>
+                    <th class="stat-label py-3 text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                    <tr>
+                        <td class="mono fw-bold text-muted" style="font-size:0.8rem;">#{{ job.id }}</td>
+                        <td>
+                            {% if job.department == 'electronic' %}
+                                <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">
+                                    <i class="bi bi-cpu me-1"></i>ELECTRONIC
+                                </span>
+                            {% elif job.department == 'mechanical' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">
+                                    <i class="bi bi-gear-wide-connected me-1"></i>MECHANICAL
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary mono">GENERAL</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="ecar-plate">{{ job.license_plate }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ job.vehicle_make }} {{ job.vehicle_model }}</div>
+                            <div class="small text-muted">{{ job.customer_name }}</div>
+                        </td>
+                        <td>
+                            {% if job.status == 'in_progress' %}
+                                <span class="badge-status-in_progress"><i class="bi bi-gear me-1"></i>In Progress</span>
+                            {% elif job.status == 'waiting_parts' %}
+                                <span class="badge-status-waiting_parts"><i class="bi bi-hourglass-split me-1"></i>Waiting Parts</span>
+                            {% elif job.status == 'completed' %}
+                                <span class="badge-status-completed"><i class="bi bi-check2-circle me-1"></i>Completed</span>
+                            {% elif job.status == 'cancelled' %}
+                                <span class="badge-status-cancelled"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                            {% else %}
+                                <span class="badge-status-pending"><i class="bi bi-clock me-1"></i>Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if job.assigned_technician %}
+                                <span class="badge bg-light text-dark border mono">
+                                    <i class="bi bi-person me-1 text-primary"></i>{{ job.assigned_technician.username }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary mono">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="mono small text-muted" style="font-size:0.75rem;">
+                            {{ job.created_at|date:"M d, H:i" }}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'owner_job_detail' job.id %}" class="btn btn-sm btn-ecar-secondary py-1 px-3 border" title="View Job Details">
+                                <i class="bi bi-eye me-1"></i>View
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                            <span class="stat-label">No repair jobs matching current filters.</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

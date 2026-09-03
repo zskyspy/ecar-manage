@@ -13,10 +13,9 @@
 </div>
 
 <div class="row g-4">
-    <!-- Left Column: Owner Profile & Security -->
-    <div class="col-12 col-lg-5">
-        <!-- Profile Settings Card -->
-        <div class="card ecar-card rounded-4 border-0 p-4 mb-4">
+    <!-- Left Column: Owner Profile Details -->
+    <div class="col-12 col-lg-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 h-100">
             <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                 <i class="bi bi-person-badge text-primary fs-5"></i>
                 <div>
@@ -28,14 +27,16 @@
             <form method="post" action="{% url 'owner_settings' %}">
                 {% csrf_token %}
                 {{ profile_form|crispy }}
-                <button type="submit" class="btn btn-ecar-primary w-100 mt-3 py-2 fw-semibold">
+                <button type="submit" class="btn btn-ecar-primary w-100 mt-4 py-2 fw-semibold">
                     <i class="bi bi-check2 me-1"></i> Save Profile Details
                 </button>
             </form>
         </div>
+    </div>
 
-        <!-- Password Change Card -->
-        <div class="card ecar-card rounded-4 border-0 p-4">
+    <!-- Right Column: Password Change -->
+    <div class="col-12 col-lg-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 h-100">
             <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
                 <i class="bi bi-shield-lock text-danger fs-5"></i>
                 <div>
@@ -47,88 +48,12 @@
             <form method="post" action="{% url 'owner_password_change' %}">
                 {% csrf_token %}
                 {{ password_form|crispy }}
-                <button type="submit" class="btn btn-ecar-secondary w-100 mt-3 py-2 fw-semibold border-dark">
+                <button type="submit" class="btn btn-ecar-secondary w-100 mt-4 py-2 fw-semibold border-dark">
                     <i class="bi bi-key me-1"></i> Change Password
                 </button>
             </form>
         </div>
     </div>
-
-    <!-- Right Column: Technician Management Roster -->
-    <div class="col-12 col-lg-7">
-        <div class="card ecar-card rounded-4 border-0 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom flex-wrap gap-2">
-                <div>
-                    <h5 class="fw-bold mb-0">Technician Roster</h5>
-                    <span class="stat-label" style="font-size:0.68rem;">Assigned Service Bay Specialists</span>
-                </div>
-                <a href="{% url 'owner_technician_add' %}" class="btn btn-sm btn-ecar-primary">
-                    <i class="bi bi-person-plus me-1"></i> Add Technician
-                </a>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead style="background-color: var(--bg-3); border-bottom: 1px solid var(--line);">
-                        <tr>
-                            <th class="stat-label py-3">Technician</th>
-                            <th class="stat-label py-3">Department</th>
-                            <th class="stat-label py-3">Contact</th>
-                            <th class="stat-label py-3">Active Jobs</th>
-                            <th class="stat-label py-3 text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tech in technicians %}
-                            <tr>
-                                <td>
-                                    <div class="fw-semibold text-dark">{{ tech.username }}</div>
-                                    <div class="mono text-muted small" style="font-size:0.72rem;">{{ tech.email|default:"No email registered" }}</div>
-                                </td>
-                                <td>
-                                    {% if tech.profile.department == 'electronic' %}
-                                        <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">
-                                            <i class="bi bi-cpu me-1"></i>ELECTRONIC
-                                        </span>
-                                    {% elif tech.profile.department == 'mechanical' %}
-                                        <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">
-                                            <i class="bi bi-gear-wide-connected me-1"></i>MECHANICAL
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-secondary mono">UNASSIGNED</span>
-                                    {% endif %}
-                                </td>
-                                <td class="small text-muted mono">
-                                    {{ tech.profile.phone_number|default:"—" }}
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark border mono font-mono">{{ tech.active_jobs_count }} active</span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <a href="{% url 'owner_technician_edit' tech.pk %}" class="btn btn-sm btn-ecar-secondary py-1 px-2 border" title="Edit technician details">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove technician {{ tech.username }}? Any active jobs will be unassigned safely.');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove technician">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    <span class="stat-label">No technicians registered yet. Click "Add Technician" above.</span>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
+

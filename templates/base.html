@@ -80,6 +80,12 @@
                                     <span>Mechanical Repair</span>
                                 </a>
                             </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-link {% if '/owner/technicians/' in request.path %}active{% endif %}" href="{% url 'owner_technicians' %}">
+                                    <i class="bi bi-people"></i>
+                                    <span>Technicians</span>
+                                </a>
+                            </li>
 
                         {% elif user.profile.is_technician %}
                             <!-- Technician Navigation -->

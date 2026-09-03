@@ -5,7 +5,15 @@ from .models import Department, Job, UserProfile
 
 
 class JobCreateForm(forms.ModelForm):
-    """Form for creating a new repair job within a specific department."""
+    """Form for creating a new repair job within a specific department, with optional technician assignment."""
+
+    assigned_technician = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label="— Unassigned (Assign Later) —",
+        label="Assign Technician (Optional)",
+        help_text="Directly assign an available specialist from this bay.",
+    )
 
     class Meta:
         model = Job
@@ -17,6 +25,7 @@ class JobCreateForm(forms.ModelForm):
             "vehicle_model",
             "description",
             "department",
+            "assigned_technician",
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 4}),
@@ -29,14 +38,39 @@ class JobCreateForm(forms.ModelForm):
             "vehicle_make": "Vehicle Make",
             "vehicle_model": "Vehicle Model",
             "description": "Work Required / Issue Description",
+            "assigned_technician": "Assign Technician",
         }
 
     def __init__(self, *args, department=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.department = department
         if "department" in self.fields:
             self.fields["department"].required = False
             if department:
                 self.fields["department"].initial = department
+
+        # Restrict technician choices strictly to technicians in this department (Zero department overlap)
+        tech_profiles = UserProfile.objects.filter(role=UserProfile.Role.TECHNICIAN)
+        if department:
+            tech_profiles = tech_profiles.filter(department=department)
+
+        technician_ids = tech_profiles.values_list("user_id", flat=True)
+        self.fields["assigned_technician"].queryset = User.objects.filter(
+            id__in=technician_ids
+        ).order_by("username")
+        self.fields["assigned_technician"].label_from_instance = (
+            lambda u: f"{u.username} ({u.get_full_name()})" if u.get_full_name() else u.username
+        )
+
+    def clean_assigned_technician(self):
+        tech = self.cleaned_data.get("assigned_technician")
+        if tech and self.department:
+            if hasattr(tech, "profile") and tech.profile.department != self.department:
+                raise forms.ValidationError(
+                    f"Technician {tech.username} does not belong to the {self.department} department."
+                )
+        return tech
+
 
 
 class JobEditForm(forms.ModelForm):

@@ -25,12 +25,20 @@ urlpatterns = [
     path("owner/", views.OwnerDashboardView.as_view(), name="owner_dashboard"),
     path("tech/", views.TechnicianDashboardView.as_view(), name="tech_dashboard"),
 
-    # ---- Owner Settings & Technician Management ----
+    # ---- Owner Settings (Profile & Password) ----
     path("owner/settings/", views.OwnerSettingsView.as_view(), name="owner_settings"),
     path("owner/settings/password/", views.OwnerPasswordChangeView.as_view(), name="owner_password_change"),
-    path("owner/settings/technicians/add/", views.OwnerAddTechnicianView.as_view(), name="owner_technician_add"),
-    path("owner/settings/technicians/<int:pk>/edit/", views.OwnerEditTechnicianView.as_view(), name="owner_technician_edit"),
-    path("owner/settings/technicians/<int:pk>/delete/", views.OwnerDeleteTechnicianView.as_view(), name="owner_technician_delete"),
+
+    # ---- Owner Technician Management (Sidebar Section) ----
+    path("owner/technicians/", views.OwnerTechniciansView.as_view(), name="owner_technicians"),
+    path("owner/technicians/add/", views.OwnerAddTechnicianView.as_view(), name="owner_technician_add"),
+    path("owner/technicians/<int:pk>/edit/", views.OwnerEditTechnicianView.as_view(), name="owner_technician_edit"),
+    path("owner/technicians/<int:pk>/delete/", views.OwnerDeleteTechnicianView.as_view(), name="owner_technician_delete"),
+
+    # Aliases for backwards compatibility
+    path("owner/settings/technicians/add/", views.OwnerAddTechnicianView.as_view()),
+    path("owner/settings/technicians/<int:pk>/edit/", views.OwnerEditTechnicianView.as_view()),
+    path("owner/settings/technicians/<int:pk>/delete/", views.OwnerDeleteTechnicianView.as_view()),
 
     # ---- Owner Job Details & Actions ----
     path("owner/jobs/", views.OwnerDashboardView.as_view(), name="owner_job_list"),

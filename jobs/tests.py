@@ -652,10 +652,12 @@ class FrontendViewTests(TestCase):
         self.assertRedirects(response, "/tech/", fetch_redirect_response=False)
 
     def test_owner_can_access_owner_portal(self):
-        """Owner visiting /owner/ is redirected to /owner/electronic/ (the electronic job list)."""
+        """Owner visiting /owner/ gets 200 OK with cross-department operations dashboard."""
         self.client.login(username="fe_owner", password="OwnerFE123!")
         response = self.client.get(reverse("owner_dashboard"))
-        self.assertRedirects(response, "/owner/electronic/", fetch_redirect_response=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Workshop Operations Dashboard")
+
 
     def test_tech_can_access_tech_portal(self):
         """Technician visiting /tech/ gets 200 OK."""
@@ -1107,12 +1109,14 @@ class OwnerSettingsAndTechManagementTests(TestCase):
         )
 
     def test_owner_can_access_settings(self):
-        """Owner accessing /owner/settings/ gets 200 OK with roster and profile forms."""
+        """Owner accessing /owner/settings/ gets 200 OK with profile and password forms."""
         self.client.login(username="settings_owner", password="OwnerPass123!")
         response = self.client.get(reverse("owner_settings"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Workshop Settings")
-        self.assertContains(response, "existing_tech")
+        self.assertContains(response, "Owner Profile")
+        self.assertNotContains(response, "Technician Roster")
+
 
     def test_technician_cannot_access_settings(self):
         """Technician accessing /owner/settings/ receives 403 Forbidden."""
@@ -1159,7 +1163,7 @@ class OwnerSettingsAndTechManagementTests(TestCase):
             "password": "SecurePassword123!",
             "confirm_password": "SecurePassword123!",
         })
-        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("owner_technicians"), fetch_redirect_response=False)
         new_tech = User.objects.get(username="new_ecu_specialist")
         self.assertEqual(new_tech.profile.role, UserProfile.Role.TECHNICIAN)
         self.assertEqual(new_tech.profile.department, Department.ELECTRONIC)
@@ -1176,7 +1180,7 @@ class OwnerSettingsAndTechManagementTests(TestCase):
             "password": "SecurePassword123!",
             "confirm_password": "SecurePassword123!",
         })
-        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("owner_technicians"), fetch_redirect_response=False)
         new_tech = User.objects.get(username="new_gearbox_specialist")
         self.assertEqual(new_tech.profile.role, UserProfile.Role.TECHNICIAN)
         self.assertEqual(new_tech.profile.department, Department.MECHANICAL)
@@ -1186,7 +1190,7 @@ class OwnerSettingsAndTechManagementTests(TestCase):
         self.client.login(username="settings_owner", password="OwnerPass123!")
         tech_id = self.tech.id
         response = self.client.post(reverse("owner_technician_delete", args=[tech_id]))
-        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("owner_technicians"), fetch_redirect_response=False)
         self.assertFalse(User.objects.filter(id=tech_id).exists())
         self.job.refresh_from_db()
         self.assertIsNone(self.job.assigned_technician)
@@ -1209,7 +1213,7 @@ class OwnerSettingsAndTechManagementTests(TestCase):
             "phone_number": "07555666777",
             "department": Department.ELECTRONIC,
         })
-        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("owner_technicians"), fetch_redirect_response=False)
         self.tech.refresh_from_db()
         self.assertEqual(self.tech.first_name, "Sam")
         self.assertEqual(self.tech.last_name, "Technician")
@@ -1229,7 +1233,7 @@ class OwnerSettingsAndTechManagementTests(TestCase):
             "phone_number": "07555666777",
             "department": Department.MECHANICAL,
         })
-        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.assertRedirects(response, reverse("owner_technicians"), fetch_redirect_response=False)
         self.tech.refresh_from_db()
         self.assertEqual(self.tech.profile.department, Department.MECHANICAL)
         # Job in electronic department must be safely unassigned
@@ -1241,6 +1245,31 @@ class OwnerSettingsAndTechManagementTests(TestCase):
         self.client.login(username="existing_tech", password="TechPass123!")
         response = self.client.get(reverse("owner_technician_edit", args=[self.tech.pk]))
         self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_access_technicians_roster_page(self):
+        """Owner accessing /owner/technicians/ gets 200 with technician roster and stats."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_technicians"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Technicians Management")
+        self.assertContains(response, self.tech.username)
+
+    def test_technician_cannot_access_technicians_roster_page(self):
+        """Technician accessing /owner/technicians/ receives 403 Forbidden."""
+        self.client.login(username="existing_tech", password="TechPass123!")
+        response = self.client.get(reverse("owner_technicians"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_dashboard_shows_cross_department_analytics(self):
+        """Owner dashboard shows unified analytics for both Electronic and Mechanical departments."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Workshop Operations Dashboard")
+        self.assertContains(response, "Electronic Bay Analytics")
+        self.assertContains(response, "Mechanical Bay Analytics")
+        self.assertContains(response, self.job.license_plate)
+
 
 
 class TechnicianSettingsTests(TestCase):
