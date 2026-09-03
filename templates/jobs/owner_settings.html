@@ -105,12 +105,17 @@
                                     <span class="badge bg-light text-dark border mono font-mono">{{ tech.active_jobs_count }} active</span>
                                 </td>
                                 <td class="text-end">
-                                    <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove technician {{ tech.username }}? Any active jobs will be unassigned safely.');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove technician">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <div class="d-inline-flex gap-1">
+                                        <a href="{% url 'owner_technician_edit' tech.pk %}" class="btn btn-sm btn-ecar-secondary py-1 px-2 border" title="Edit technician details">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove technician {{ tech.username }}? Any active jobs will be unassigned safely.');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove technician">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% empty %}

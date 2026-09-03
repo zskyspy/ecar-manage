@@ -29,6 +29,7 @@ urlpatterns = [
     path("owner/settings/", views.OwnerSettingsView.as_view(), name="owner_settings"),
     path("owner/settings/password/", views.OwnerPasswordChangeView.as_view(), name="owner_password_change"),
     path("owner/settings/technicians/add/", views.OwnerAddTechnicianView.as_view(), name="owner_technician_add"),
+    path("owner/settings/technicians/<int:pk>/edit/", views.OwnerEditTechnicianView.as_view(), name="owner_technician_edit"),
     path("owner/settings/technicians/<int:pk>/delete/", views.OwnerDeleteTechnicianView.as_view(), name="owner_technician_delete"),
 
     # ---- Owner Job Details & Actions ----

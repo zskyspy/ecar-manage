@@ -1191,6 +1191,58 @@ class OwnerSettingsAndTechManagementTests(TestCase):
         self.job.refresh_from_db()
         self.assertIsNone(self.job.assigned_technician)
 
+    def test_owner_can_access_edit_technician_page(self):
+        """Owner accessing /owner/settings/technicians/<pk>/edit/ gets 200 with current tech data."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.get(reverse("owner_technician_edit", args=[self.tech.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.tech.username)
+        self.assertContains(response, "Edit Technician Profile")
+
+    def test_owner_can_edit_technician_name_and_contact(self):
+        """Owner updates technician's first name, last name, and contact phone."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        response = self.client.post(reverse("owner_technician_edit", args=[self.tech.pk]), {
+            "first_name": "Sam",
+            "last_name": "Technician",
+            "email": "sam.tech@ecarspace.local",
+            "phone_number": "07555666777",
+            "department": Department.ELECTRONIC,
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.tech.refresh_from_db()
+        self.assertEqual(self.tech.first_name, "Sam")
+        self.assertEqual(self.tech.last_name, "Technician")
+        self.assertEqual(self.tech.profile.phone_number, "07555666777")
+        self.assertEqual(self.tech.profile.department, Department.ELECTRONIC)
+
+    def test_department_change_unassigns_old_department_jobs(self):
+        """Changing technician department transfers tech and unassigns active jobs from old department."""
+        self.client.login(username="settings_owner", password="OwnerPass123!")
+        self.assertEqual(self.job.assigned_technician, self.tech)
+        self.assertEqual(self.tech.profile.department, Department.ELECTRONIC)
+
+        response = self.client.post(reverse("owner_technician_edit", args=[self.tech.pk]), {
+            "first_name": self.tech.first_name,
+            "last_name": self.tech.last_name,
+            "email": self.tech.email,
+            "phone_number": "07555666777",
+            "department": Department.MECHANICAL,
+        })
+        self.assertRedirects(response, reverse("owner_settings"), fetch_redirect_response=False)
+        self.tech.refresh_from_db()
+        self.assertEqual(self.tech.profile.department, Department.MECHANICAL)
+        # Job in electronic department must be safely unassigned
+        self.job.refresh_from_db()
+        self.assertIsNone(self.job.assigned_technician)
+
+    def test_technician_cannot_access_technician_edit(self):
+        """Technician accessing /owner/settings/technicians/<pk>/edit/ receives 403 Forbidden."""
+        self.client.login(username="existing_tech", password="TechPass123!")
+        response = self.client.get(reverse("owner_technician_edit", args=[self.tech.pk]))
+        self.assertEqual(response.status_code, 403)
+
+
 
 
 

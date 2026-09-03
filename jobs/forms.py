@@ -164,3 +164,18 @@ class TechnicianCreateForm(forms.Form):
             self.add_error("confirm_password", "Passwords do not match.")
         return cleaned_data
 
+
+class TechnicianEditForm(forms.Form):
+    """Form for owner to edit technician details and department assignment."""
+
+    first_name = forms.CharField(max_length=60, required=False, label="First Name")
+    last_name = forms.CharField(max_length=60, required=False, label="Last Name")
+    email = forms.EmailField(required=False, label="Email Address")
+    phone_number = forms.CharField(max_length=30, required=False, label="Phone Number")
+    department = forms.ChoiceField(
+        choices=Department.choices,
+        label="Service Department",
+        help_text="Changing department will safely unassign any active jobs in their previous department to preserve isolation.",
+    )
+
+

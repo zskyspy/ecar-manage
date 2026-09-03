@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit {{ tech.username }} — ECAR Space{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb stat-label" style="font-size:0.75rem;">
+        <li class="breadcrumb-item"><a href="{% url 'owner_settings' %}" class="text-decoration-none">Settings</a></li>
+        <li class="breadcrumb-item active text-dark">Edit {{ tech.username }}</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-7 col-xl-6">
+        <div class="card ecar-card rounded-4 border-0 p-4 p-md-5">
+            <div class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h4 class="fw-bold mb-1">Edit Technician Profile</h4>
+                    <p class="stat-label mb-0">Update contact info and department assignment for <span class="mono fw-bold text-dark">{{ tech.username }}</span></p>
+                </div>
+                {% if tech.profile.department == 'electronic' %}
+                    <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">ELECTRONIC</span>
+                {% elif tech.profile.department == 'mechanical' %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">MECHANICAL</span>
+                {% endif %}
+            </div>
+
+            {% if active_jobs_count > 0 %}
+                <div class="alert alert-warning border-0 rounded-3 mb-4 small d-flex align-items-start gap-2" style="background-color: #fef3c7; color: #92400e;">
+                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+                    <div>
+                        <strong>Notice:</strong> This technician has <strong>{{ active_jobs_count }} active job{{ active_jobs_count|pluralize }}</strong> in <strong>{{ tech.profile.get_department_display }}</strong>. If you switch their department, those jobs will be safely unassigned to maintain zero cross-department overlap.
+                    </div>
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex gap-2 mt-4 pt-2">
+                    <button type="submit" class="btn btn-ecar-primary px-4 py-2">
+                        <i class="bi bi-check2 me-1"></i> Save Technician Details
+                    </button>
+                    <a href="{% url 'owner_settings' %}" class="btn btn-ecar-secondary px-4 py-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

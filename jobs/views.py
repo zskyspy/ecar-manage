@@ -569,6 +569,79 @@ class OwnerDeleteTechnicianView(OwnerRequiredMixin, View):
         return redirect("owner_settings")
 
 
+class OwnerEditTechnicianView(OwnerRequiredMixin, View):
+    """Edit an existing technician's details and department assignment."""
+
+    template_name = "jobs/technician_edit.html"
+
+    def get(self, request, pk):
+        from django.contrib.auth.models import User as DjangoUser
+        from .forms import TechnicianEditForm
+
+        tech = get_object_or_404(
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN),
+            pk=pk,
+        )
+        form = TechnicianEditForm(initial={
+            "first_name": tech.first_name,
+            "last_name": tech.last_name,
+            "email": tech.email,
+            "phone_number": getattr(tech.profile, "phone_number", ""),
+            "department": tech.profile.department,
+        })
+        active_jobs_count = tech.assigned_jobs.count()
+        return render(request, self.template_name, {
+            "tech": tech,
+            "form": form,
+            "active_jobs_count": active_jobs_count,
+        })
+
+    def post(self, request, pk):
+        from django.contrib.auth.models import User as DjangoUser
+        from .forms import TechnicianEditForm
+
+        tech = get_object_or_404(
+            DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN),
+            pk=pk,
+        )
+        form = TechnicianEditForm(request.POST)
+        if form.is_valid():
+            tech.first_name = form.cleaned_data["first_name"]
+            tech.last_name = form.cleaned_data["last_name"]
+            tech.email = form.cleaned_data["email"]
+            tech.save()
+
+            old_dept = tech.profile.department
+            new_dept = form.cleaned_data["department"]
+            unassigned_count = 0
+
+            if old_dept != new_dept:
+                # If changing departments, unassign active jobs from previous department to prevent overlap
+                unassigned_count = Job.objects.filter(assigned_technician=tech).update(assigned_technician=None)
+                tech.profile.department = new_dept
+
+            tech.profile.phone_number = form.cleaned_data["phone_number"]
+            tech.profile.save()
+
+            if old_dept != new_dept:
+                msg = f"Technician '{tech.username}' transferred to {tech.profile.get_department_display()}."
+                if unassigned_count > 0:
+                    msg += f" {unassigned_count} active job(s) from former department were unassigned."
+                messages.success(request, msg)
+            else:
+                messages.success(request, f"Technician '{tech.username}' details updated successfully.")
+
+            return redirect("owner_settings")
+
+        active_jobs_count = tech.assigned_jobs.count()
+        return render(request, self.template_name, {
+            "tech": tech,
+            "form": form,
+            "active_jobs_count": active_jobs_count,
+        })
+
+
+
 
 
 

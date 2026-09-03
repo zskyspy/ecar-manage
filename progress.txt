@@ -299,6 +299,20 @@ Notes / decisions
   * Added OwnerSettingsAndTechManagementTests (7 comprehensive tests in jobs/tests.py)
   * Ran manage.py test jobs — all 72/72 tests passed on PostgreSQL
   * Fast direct client verification (< 2s) passed: profile updates, password change, adding electronic tech, adding mechanical tech, safe technician deletion with job unassignment, technician 403 protection
+- Committed: f0633c6
+
+[2026-09-03] Technician Info & Department Editing
+- TechnicianEditForm: Edit technician first_name, last_name, email, phone_number, and department
+- OwnerEditTechnicianView (/owner/settings/technicians/<pk>/edit/):
+  * Prepopulates current technician details and department assignment
+  * Displays proactive warning alert if the technician has active jobs in their current department
+  * On department transfer: automatically and safely unassigns active jobs from the previous department (assigned_technician=None) to ensure zero cross-department data leakage or role overlap
+  * Roster UI: Added "Edit" pencil button in the action column of each technician row
+- Verification:
+  * Added 4 new automated unit tests in OwnerSettingsAndTechManagementTests (76 tests total)
+  * Ran manage.py test jobs — all 76/76 tests passed on PostgreSQL
+  * Fast direct client verification (< 2s) passed: GET edit view, info update, department transfer safety unassignment, 403 security protection for technicians
+
 
 
 
