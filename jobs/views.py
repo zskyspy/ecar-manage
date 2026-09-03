@@ -1,6 +1,7 @@
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,9 +12,11 @@ from .models import Job
 from .permissions import IsOwner, IsTechnician
 from .serializers import (
     CustomTokenObtainPairSerializer,
+    JobAssignSerializer,
     JobSerializer,
     UserSerializer,
 )
+
 
 
 
@@ -74,5 +77,23 @@ class JobViewSet(viewsets.ModelViewSet):
             serializer.save(created_by=self.request.user)
         else:
             serializer.save()
+
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, IsOwner],
+    )
+    def assign(self, request, pk=None):
+        job = self.get_object()
+        serializer = JobAssignSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tech_id = serializer.validated_data.get("technician_id")
+        if tech_id is None:
+            job.assigned_technician = None
+        else:
+            job.assigned_technician_id = tech_id
+        job.save()
+        return Response(JobSerializer(job).data, status=status.HTTP_200_OK)
+
 
 

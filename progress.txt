@@ -86,11 +86,29 @@ Started: 2026-09-03
 - Ran manage.py test jobs — all 12/12 tests passed on PostgreSQL
 - Live manual verification via REST requests: confirmed POST /api/jobs/, GET /api/jobs/{id}/, PATCH /api/jobs/{id}/, and query filtering with JWT auth
 
+[2026-09-03] Step 6: Assignment Logic
+- Created JobAssignSerializer in jobs/serializers.py to validate technician_id (verifying user exists, has role == 'technician', or is null to unassign)
+- Updated JobSerializer with default=None and allow_null=True for assigned_technician_name and created_by_name to cleanly handle unassigned jobs
+- Added @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsOwner]) assign on JobViewSet
+- Endpoint available at: POST /api/jobs/{id}/assign/
+- Implemented role protection: strictly IsOwner (technicians receive 403 Forbidden)
+- Added 6 automated tests in JobAssignmentTests in jobs/tests.py (18 total in suite):
+  * test_owner_can_assign_technician (200 OK, database and serializer verified)
+  * test_owner_can_unassign_technician (200 OK, assigned_technician set to null)
+  * test_technician_cannot_assign (403 Forbidden)
+  * test_assign_non_existent_user_fails (400 Bad Request)
+  * test_assign_non_technician_user_fails (400 Bad Request when assigning owner)
+  * test_unauthenticated_cannot_assign (401 Unauthorized)
+- Ran manage.py test jobs — all 18/18 tests passed on PostgreSQL
+- Live manual verification via REST requests: confirmed owner assigning tech, tech blocked with 403, assigning non-tech blocked with 400, and owner unassigning
+
 Notes / decisions
 - Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
 - PostgreSQL 18 used instead of 16 (what the installer provided)
 - DB password is only in .env, never in progress.txt or settings.py
 - Role access control enforced at the permission/backend layer via IsOwner / IsTechnician
 - Job CRUD routes live under /api/jobs/ with DRF DefaultRouter
+- Dedicated action endpoint /api/jobs/{id}/assign/ guarded by IsOwner
+
 
 

@@ -222,3 +222,107 @@ class JobCrudTests(TestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["customer_name"], "Robert Taylor")
 
+
+class JobAssignmentTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create Owner
+        self.owner = User.objects.create_user(
+            username="shop_owner",
+            password="OwnerPassword123!",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Create Technician
+        self.technician = User.objects.create_user(
+            username="shop_tech",
+            password="TechPassword123!",
+        )
+        self.technician.profile.role = UserProfile.Role.TECHNICIAN
+        self.technician.profile.save()
+
+        # Create another Owner
+        self.other_owner = User.objects.create_user(
+            username="other_owner",
+            password="OwnerPassword123!",
+        )
+        self.other_owner.profile.role = UserProfile.Role.OWNER
+        self.other_owner.profile.save()
+
+        # Create Job
+        from .models import Job
+
+        self.job = Job.objects.create(
+            customer_name="John Doe",
+            license_plate="JD10 ABC",
+            vehicle_make="Audi",
+            vehicle_model="A4",
+            description="Clutch inspection",
+            created_by=self.owner,
+        )
+
+    def test_owner_can_assign_technician(self):
+        """Owner can successfully assign a technician to a job."""
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": self.technician.id}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assigned_technician"], self.technician.id)
+        self.assertEqual(response.data["assigned_technician_name"], "shop_tech")
+
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.assigned_technician, self.technician)
+
+    def test_owner_can_unassign_technician(self):
+        """Owner can unassign a technician by passing technician_id: null."""
+        self.job.assigned_technician = self.technician
+        self.job.save()
+
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": None}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["assigned_technician"])
+        self.assertIsNone(response.data["assigned_technician_name"])
+
+        self.job.refresh_from_db()
+        self.assertIsNone(self.job.assigned_technician)
+
+    def test_technician_cannot_assign(self):
+        """Technician calling the assign endpoint receives 403 Forbidden."""
+        self.client.force_authenticate(user=self.technician)
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": self.technician.id}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_assign_non_existent_user_fails(self):
+        """Assigning a non-existent user id returns 400 Bad Request."""
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": 99999}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("technician_id", response.data)
+
+    def test_assign_non_technician_user_fails(self):
+        """Assigning a user who has the owner role returns 400 Bad Request."""
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": self.other_owner.id}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("technician_id", response.data)
+
+    def test_unauthenticated_cannot_assign(self):
+        """Anonymous requests to assign endpoint receive 401 Unauthorized."""
+        url = reverse("job-assign", kwargs={"pk": self.job.id})
+        response = self.client.post(url, {"technician_id": self.technician.id}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+

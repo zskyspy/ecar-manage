@@ -41,11 +41,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class JobSerializer(serializers.ModelSerializer):
     assigned_technician_name = serializers.CharField(
-        source="assigned_technician.username", read_only=True
+        source="assigned_technician.username",
+        read_only=True,
+        default=None,
+        allow_null=True,
     )
     created_by_name = serializers.CharField(
-        source="created_by.username", read_only=True
+        source="created_by.username",
+        read_only=True,
+        default=None,
+        allow_null=True,
     )
+
 
     class Meta:
         model = Job
@@ -75,4 +82,23 @@ class JobSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+
+class JobAssignSerializer(serializers.Serializer):
+    technician_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_technician_id(self, value):
+        if value is None:
+            return None
+        try:
+            user = User.objects.select_related("profile").get(pk=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(f"User with id {value} does not exist.")
+
+        if not hasattr(user, "profile") or not user.profile.is_technician:
+            raise serializers.ValidationError(
+                f"User '{user.username}' does not have the technician role."
+            )
+        return value
+
 
