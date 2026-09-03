@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block title %}Technicians Roster — ECAR Space{% endblock %}
 
@@ -7,7 +8,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
         <h2 class="fw-bold mb-1">Technicians Management</h2>
-        <p class="stat-label mb-0">Workshop specialists, contact details, and department bay assignments.</p>
+        <p class="stat-label mb-0">Workshop specialists grouped by repair bay department.</p>
     </div>
     <a href="{% url 'owner_technician_add' %}" class="btn btn-ecar-primary">
         <i class="bi bi-person-plus me-1"></i> Add Technician
@@ -24,72 +25,67 @@
     </div>
     <div class="col-12 col-sm-4">
         <div class="card ecar-card p-3 rounded-3 border-0">
-            <div class="stat-label text-primary">⚡ Electronic Bay</div>
+            <div class="stat-label"><i class="bi bi-cpu text-primary me-1"></i>Electronic Bay</div>
             <div class="stat-num mt-2">{{ elec_count }}</div>
         </div>
     </div>
     <div class="col-12 col-sm-4">
         <div class="card ecar-card p-3 rounded-3 border-0">
-            <div class="stat-label text-warning-emphasis">🔧 Mechanical Bay</div>
+            <div class="stat-label"><i class="bi bi-gear-wide-connected text-warning-emphasis me-1"></i>Mechanical Bay</div>
             <div class="stat-num mt-2">{{ mech_count }}</div>
         </div>
     </div>
 </div>
 
-<!-- Technicians Table Card -->
-<div class="card ecar-card rounded-4 border-0 p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+<!-- Electronic Repair Department -->
+<div class="card ecar-card rounded-4 border-0 mb-4">
+    <div class="d-flex align-items-center gap-3 p-4 pb-3 border-bottom">
+        <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-3 py-2 fs-6">
+            <i class="bi bi-cpu me-1"></i> ELECTRONIC REPAIR
+        </span>
         <div>
-            <h5 class="fw-bold mb-0">Technician Roster</h5>
-            <span class="stat-label" style="font-size:0.68rem;">Assigned Specialists Across Electronic & Mechanical Bays</span>
+            <h5 class="fw-bold mb-0">Electronic Repair Bay</h5>
+            <span class="stat-label" style="font-size:0.68rem;">ECU, sensors, wiring, software diagnostics</span>
         </div>
+        <span class="badge bg-light text-dark border mono ms-auto">{{ elec_count }} specialist{{ elec_count|pluralize }}</span>
     </div>
 
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead style="background-color: var(--bg-3); border-bottom: 1px solid var(--line);">
                 <tr>
-                    <th class="stat-label py-3">Technician</th>
-                    <th class="stat-label py-3">Department</th>
+                    <th class="stat-label py-3 ps-4">Technician</th>
                     <th class="stat-label py-3">Contact</th>
                     <th class="stat-label py-3">Active Jobs</th>
-                    <th class="stat-label py-3 text-end">Action</th>
+                    <th class="stat-label py-3 text-end pe-4">Action</th>
                 </tr>
             </thead>
             <tbody>
-                {% for tech in technicians %}
+                {% for tech in electronic_techs %}
                     <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="sidebar-user-avatar" style="width:32px;height:32px;font-size:0.78rem;flex-shrink:0;">
+                                    {{ tech.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark">{{ tech.username }}</div>
+                                    <div class="mono text-muted" style="font-size:0.72rem;">{{ tech.email|default:"No email" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="small text-muted mono">{{ tech.profile.phone_number|default:"—" }}</td>
                         <td>
-                            <div class="fw-semibold text-dark">{{ tech.username }}</div>
-                            <div class="mono text-muted small" style="font-size:0.72rem;">{{ tech.email|default:"No email registered" }}</div>
+                            <span class="badge bg-light text-dark border mono">{{ tech.active_jobs_count }} active</span>
                         </td>
-                        <td>
-                            {% if tech.profile.department == 'electronic' %}
-                                <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-2 py-1">
-                                    <i class="bi bi-cpu me-1"></i>ELECTRONIC
-                                </span>
-                            {% elif tech.profile.department == 'mechanical' %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-2 py-1">
-                                    <i class="bi bi-gear-wide-connected me-1"></i>MECHANICAL
-                                </span>
-                            {% else %}
-                                <span class="badge bg-secondary mono">UNASSIGNED</span>
-                            {% endif %}
-                        </td>
-                        <td class="small text-muted mono">
-                            {{ tech.profile.phone_number|default:"—" }}
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-dark border mono font-mono">{{ tech.active_jobs_count }} active</span>
-                        </td>
-                        <td class="text-end">
+                        <td class="text-end pe-4">
                             <div class="d-inline-flex gap-1">
-                                <a href="{% url 'owner_technician_edit' tech.pk %}" class="btn btn-sm btn-ecar-secondary py-1 px-2 border" title="Edit technician details">
+                                <a href="{% url 'owner_technician_edit' tech.pk %}" class="btn btn-sm btn-ecar-secondary py-1 px-2 border" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove technician {{ tech.username }}? Any active jobs will be unassigned safely.');">
+                                <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove {{ tech.username }}? Their active jobs will be unassigned safely.');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove technician">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -98,9 +94,77 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
-                            <span class="stat-label">No technicians registered yet. Click "Add Technician" above.</span>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-cpu d-block fs-3 mb-1 text-primary opacity-25"></i>
+                            <span class="stat-label">No electronic technicians registered yet.</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Mechanical Repair Department -->
+<div class="card ecar-card rounded-4 border-0">
+    <div class="d-flex align-items-center gap-3 p-4 pb-3 border-bottom">
+        <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-3 py-2 fs-6">
+            <i class="bi bi-gear-wide-connected me-1"></i> MECHANICAL REPAIR
+        </span>
+        <div>
+            <h5 class="fw-bold mb-0">Mechanical Repair Bay</h5>
+            <span class="stat-label" style="font-size:0.68rem;">Engine, brakes, gearbox, suspension, drivetrain</span>
+        </div>
+        <span class="badge bg-light text-dark border mono ms-auto">{{ mech_count }} specialist{{ mech_count|pluralize }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background-color: var(--bg-3); border-bottom: 1px solid var(--line);">
+                <tr>
+                    <th class="stat-label py-3 ps-4">Technician</th>
+                    <th class="stat-label py-3">Contact</th>
+                    <th class="stat-label py-3">Active Jobs</th>
+                    <th class="stat-label py-3 text-end pe-4">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tech in mechanical_techs %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="sidebar-user-avatar" style="width:32px;height:32px;font-size:0.78rem;flex-shrink:0;background:#fef3c7;color:#b45309;border-color:#fde68a;">
+                                    {{ tech.username|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark">{{ tech.username }}</div>
+                                    <div class="mono text-muted" style="font-size:0.72rem;">{{ tech.email|default:"No email" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="small text-muted mono">{{ tech.profile.phone_number|default:"—" }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border mono">{{ tech.active_jobs_count }} active</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{% url 'owner_technician_edit' tech.pk %}" class="btn btn-sm btn-ecar-secondary py-1 px-2 border" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{% url 'owner_technician_delete' tech.pk %}" class="d-inline" onsubmit="return confirm('Remove {{ tech.username }}? Their active jobs will be unassigned safely.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Remove">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-gear-wide-connected d-block fs-3 mb-1 text-warning opacity-50"></i>
+                            <span class="stat-label">No mechanical technicians registered yet.</span>
                         </td>
                     </tr>
                 {% endfor %}

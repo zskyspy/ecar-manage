@@ -600,19 +600,23 @@ class OwnerTechniciansView(OwnerRequiredMixin, View):
         from django.contrib.auth.models import User as DjangoUser
         from django.db.models import Count
 
-        technicians = (
+        base_qs = (
             DjangoUser.objects.filter(profile__role=UserProfile.Role.TECHNICIAN)
             .select_related("profile")
             .annotate(active_jobs_count=Count("assigned_jobs"))
-            .order_by("profile__department", "username")
+            .order_by("username")
         )
 
-        elec_count = sum(1 for t in technicians if getattr(t.profile, "department", None) == Department.ELECTRONIC)
-        mech_count = sum(1 for t in technicians if getattr(t.profile, "department", None) == Department.MECHANICAL)
+        electronic_techs = base_qs.filter(profile__department=Department.ELECTRONIC)
+        mechanical_techs = base_qs.filter(profile__department=Department.MECHANICAL)
+
+        elec_count = electronic_techs.count()
+        mech_count = mechanical_techs.count()
 
         return render(request, self.template_name, {
-            "technicians": technicians,
-            "total_techs": technicians.count(),
+            "electronic_techs": electronic_techs,
+            "mechanical_techs": mechanical_techs,
+            "total_techs": elec_count + mech_count,
             "elec_count": elec_count,
             "mech_count": mech_count,
         })
