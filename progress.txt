@@ -102,6 +102,25 @@ Started: 2026-09-03
 - Ran manage.py test jobs — all 18/18 tests passed on PostgreSQL
 - Live manual verification via REST requests: confirmed owner assigning tech, tech blocked with 403, assigning non-tech blocked with 400, and owner unassigning
 
+[2026-09-03] Step 7: Status Update Logic
+- Created StatusUpdate model in jobs/models.py with fields: job (FK Job CASCADE), status (Job.Status choices), note, technician (FK User), created_at
+- Registered StatusUpdate in jobs/admin.py and added StatusUpdateInline to JobAdmin for embedded history inspection
+- Created IsAssignedTechnician object-level permission in jobs/permissions.py
+- Created StatusUpdateSerializer in jobs/serializers.py with read-only audit fields and technician username
+- Added @action(detail=True, methods=["get", "post"], url_path="status-updates") on JobViewSet
+  * GET /api/jobs/{id}/status-updates/ — returns chronological history of updates
+  * POST /api/jobs/{id}/status-updates/ — restricted strictly to the assigned technician; updates parent Job.status and updated_at
+- Generated and applied migration jobs/migrations/0003_statusupdate.py
+- Added 6 automated tests in StatusUpdateTests in jobs/tests.py (24 total in suite):
+  * test_assigned_tech_can_post_status_update (201 Created, DB record created, Job.status updated)
+  * test_unassigned_tech_cannot_post_status_update (403 Forbidden, parent Job.status untouched)
+  * test_owner_cannot_post_status_update_directly (403 Forbidden on technician endpoint)
+  * test_unauthenticated_cannot_post_status_update (401 Unauthorized)
+  * test_get_status_history (200 OK, returns ordered list of status records)
+  * test_invalid_status_rejected (400 Bad Request)
+- Ran manage.py test jobs — all 24/24 tests passed on PostgreSQL
+- Live manual verification via REST requests: confirmed assigned technician posting update, immediate parent job status sync, status history retrieval, and 403 blocking on unassigned users
+
 Notes / decisions
 - Python 3.14 + Django 6.1 used instead of Python 3.12 + Django 5.x from the original tools list (3.12 is not installed; 6.1 is the current compatible line)
 - PostgreSQL 18 used instead of 16 (what the installer provided)
@@ -109,6 +128,8 @@ Notes / decisions
 - Role access control enforced at the permission/backend layer via IsOwner / IsTechnician
 - Job CRUD routes live under /api/jobs/ with DRF DefaultRouter
 - Dedicated action endpoint /api/jobs/{id}/assign/ guarded by IsOwner
+- Status updates nested at /api/jobs/{id}/status-updates/ with parent status sync and assigned technician guard
+
 
 
 

@@ -100,3 +100,33 @@ class Job(models.Model):
     def __str__(self):
         return f"Job #{self.id} - {self.vehicle_make} {self.vehicle_model} ({self.license_plate})"
 
+
+class StatusUpdate(models.Model):
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="status_updates",
+    )
+    status = models.CharField(
+        max_length=30,
+        choices=Job.Status.choices,
+    )
+    note = models.TextField(blank=True)
+    technician = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="status_updates",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name = "Status Update"
+        verbose_name_plural = "Status Updates"
+
+    def __str__(self):
+        return f"Job #{self.job_id} -> {self.get_status_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+

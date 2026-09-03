@@ -2,7 +2,8 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Job, UserProfile
+from .models import Job, StatusUpdate, UserProfile
+
 
 
 
@@ -100,5 +101,28 @@ class JobAssignSerializer(serializers.Serializer):
                 f"User '{user.username}' does not have the technician role."
             )
         return value
+
+
+class StatusUpdateSerializer(serializers.ModelSerializer):
+    technician_name = serializers.CharField(
+        source="technician.username",
+        read_only=True,
+        default=None,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = StatusUpdate
+        fields = (
+            "id",
+            "job",
+            "status",
+            "note",
+            "technician",
+            "technician_name",
+            "created_at",
+        )
+        read_only_fields = ("id", "job", "technician", "technician_name", "created_at")
+
 
 

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
-from .models import Job, UserProfile
+from .models import Job, StatusUpdate, UserProfile
 
 
 class UserProfileInline(admin.StackedInline):
@@ -11,12 +11,21 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = "Profile"
 
 
+class StatusUpdateInline(admin.TabularInline):
+    model = StatusUpdate
+    extra = 0
+    readonly_fields = ("created_at",)
+    fields = ("status", "technician", "note", "created_at")
+
+
 class UserAdmin(BaseUserAdmin):
     inlines = [UserProfileInline]
 
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
+    inlines = [StatusUpdateInline]
+
     list_display = (
         "id",
         "customer_name",
@@ -42,4 +51,6 @@ class JobAdmin(admin.ModelAdmin):
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 admin.site.register(UserProfile)
+admin.site.register(StatusUpdate)
+
 

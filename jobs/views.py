@@ -14,6 +14,7 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     JobAssignSerializer,
     JobSerializer,
+    StatusUpdateSerializer,
     UserSerializer,
 )
 
@@ -94,6 +95,38 @@ class JobViewSet(viewsets.ModelViewSet):
             job.assigned_technician_id = tech_id
         job.save()
         return Response(JobSerializer(job).data, status=status.HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["get", "post"],
+        url_path="status-updates",
+        permission_classes=[IsAuthenticated],
+    )
+    def status_updates(self, request, pk=None):
+        job = self.get_object()
+
+        if request.method == "GET":
+            updates = job.status_updates.all().select_related("technician")
+            serializer = StatusUpdateSerializer(updates, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # POST: Must be the assigned technician
+        if job.assigned_technician != request.user:
+            return Response(
+                {"detail": "Only the assigned technician can post status updates for this job."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = StatusUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        status_update = serializer.save(job=job, technician=request.user)
+
+        # Update parent Job status
+        job.status = status_update.status
+        job.save(update_fields=["status", "updated_at"])
+
+        return Response(StatusUpdateSerializer(status_update).data, status=status.HTTP_201_CREATED)
+
 
 
 

@@ -326,3 +326,141 @@ class JobAssignmentTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class StatusUpdateTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create Owner
+        self.owner = User.objects.create_user(
+            username="owner_user",
+            password="OwnerPassword123!",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Create Assigned Technician
+        self.assigned_tech = User.objects.create_user(
+            username="assigned_tech",
+            password="TechPassword123!",
+        )
+        self.assigned_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.assigned_tech.profile.save()
+
+        # Create Unassigned Technician
+        self.unassigned_tech = User.objects.create_user(
+            username="unassigned_tech",
+            password="TechPassword123!",
+        )
+        self.unassigned_tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.unassigned_tech.profile.save()
+
+        # Create Job
+        from .models import Job
+
+        self.job = Job.objects.create(
+            customer_name="Michael Scott",
+            license_plate="DM01 PAP",
+            vehicle_make="Chrysler",
+            vehicle_model="Sebring",
+            description="Convertible top replacement",
+            status=Job.Status.PENDING,
+            assigned_technician=self.assigned_tech,
+            created_by=self.owner,
+        )
+
+    def test_assigned_tech_can_post_status_update(self):
+        """Assigned technician can post an update; parent job status is updated."""
+        from .models import Job, StatusUpdate
+
+        self.client.force_authenticate(user=self.assigned_tech)
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        payload = {
+            "status": "in_progress",
+            "note": "Disassembled old roof frame",
+        }
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "in_progress")
+        self.assertEqual(response.data["note"], "Disassembled old roof frame")
+        self.assertEqual(response.data["technician_name"], "assigned_tech")
+
+        # Verify parent job was updated
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.IN_PROGRESS)
+
+        # Verify StatusUpdate in DB
+        self.assertEqual(StatusUpdate.objects.filter(job=self.job).count(), 1)
+
+    def test_unassigned_tech_cannot_post_status_update(self):
+        """Unassigned technician receives 403 Forbidden when trying to update status."""
+        from .models import Job
+
+        self.client.force_authenticate(user=self.unassigned_tech)
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        payload = {"status": "completed", "note": "Trying to update someone else's job"}
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.PENDING)
+
+    def test_owner_cannot_post_status_update_directly(self):
+        """Owner receives 403 Forbidden on the technician status-update endpoint."""
+        from .models import Job
+
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        payload = {"status": "completed", "note": "Owner attempting direct status post"}
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.Status.PENDING)
+
+    def test_unauthenticated_cannot_post_status_update(self):
+        """Anonymous user receives 401 Unauthorized."""
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        payload = {"status": "in_progress", "note": "Anonymous attempt"}
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_status_history(self):
+        """Any authenticated user can retrieve the chronological status update history."""
+        from .models import StatusUpdate
+
+        StatusUpdate.objects.create(
+            job=self.job,
+            status="in_progress",
+            note="Started inspection",
+            technician=self.assigned_tech,
+        )
+        StatusUpdate.objects.create(
+            job=self.job,
+            status="waiting_parts",
+            note="Waiting for hydraulic pump",
+            technician=self.assigned_tech,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["status"], "in_progress")
+        self.assertEqual(response.data[1]["status"], "waiting_parts")
+
+    def test_invalid_status_rejected(self):
+        """Submitting an unrecognized status value returns 400 Bad Request."""
+        self.client.force_authenticate(user=self.assigned_tech)
+        url = reverse("job-status-updates", kwargs={"pk": self.job.id})
+        payload = {"status": "invalid_status_xyz", "note": "bad status"}
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("status", response.data)
+
+
+

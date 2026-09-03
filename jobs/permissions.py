@@ -27,3 +27,17 @@ class IsTechnician(BasePermission):
             and hasattr(request.user, "profile")
             and request.user.profile.is_technician
         )
+
+
+class IsAssignedTechnician(BasePermission):
+    """
+    Allows access only if the authenticated user is the assigned technician of the job.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and obj.assigned_technician == request.user
+        )
+
