@@ -62,6 +62,25 @@ class JobCreateForm(forms.ModelForm):
             lambda u: f"{u.username} ({u.get_full_name()})" if u.get_full_name() else u.username
         )
 
+        # Style fields with Bootstrap 5 classes and helpful placeholders
+        placeholders = {
+            "customer_name": "e.g. John Smith",
+            "customer_phone": "e.g. +44 7700 900123",
+            "license_plate": "e.g. AB24 XYZ",
+            "vehicle_make": "e.g. BMW, Mercedes, Tesla",
+            "vehicle_model": "e.g. M3, E-Class, Model 3",
+            "description": "Describe the diagnosed fault, work required, or customer complaint...",
+        }
+        for field_name, field in self.fields.items():
+            if field_name == "department":
+                continue
+            if isinstance(field.widget, (forms.Select,)):
+                field.widget.attrs["class"] = "form-select"
+            else:
+                field.widget.attrs["class"] = "form-control"
+            if field_name in placeholders:
+                field.widget.attrs["placeholder"] = placeholders[field_name]
+
     def clean_assigned_technician(self):
         tech = self.cleaned_data.get("assigned_technician")
         if tech and self.department:

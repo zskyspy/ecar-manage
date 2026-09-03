@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}New {{ department_display }} Order — ECAR Space{% endblock %}
+{% block title %}New {{ department_display }} Job — ECAR Space{% endblock %}
 
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-4">
@@ -11,34 +11,150 @@
     </ol>
 </nav>
 
-<div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-        <div class="card ecar-card rounded-4 border-0 p-4 p-md-5">
-            <div class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                    <h4 class="fw-bold mb-1">Create New Repair Job</h4>
-                    <p class="stat-label mb-0">Intake for {{ department_display }} Bay</p>
-                </div>
-                {% if department == 'electronic' %}
-                    <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-3 py-2">ELECTRONIC REPAIR</span>
-                {% else %}
-                    <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-3 py-2">MECHANICAL REPAIR</span>
-                {% endif %}
-            </div>
-
-            <form method="post">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <div class="d-flex gap-2 mt-4 pt-2">
-                    <button type="submit" class="btn btn-ecar-primary px-4 py-2">
-                        <i class="bi bi-check-lg me-1"></i> Register {{ department_display }} Job
-                    </button>
-                    <a href="{% url 'owner_department_jobs' department %}" class="btn btn-ecar-secondary px-4 py-2">
-                        Cancel
-                    </a>
-                </div>
-            </form>
-        </div>
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-1">Create New Repair Job</h2>
+        <p class="stat-label mb-0">Intake form for the {{ department_display }} Bay</p>
     </div>
+    {% if department == 'electronic' %}
+        <span class="badge bg-primary-subtle text-primary mono border border-primary-subtle px-3 py-2 fs-6">
+            <i class="bi bi-cpu me-1"></i> ELECTRONIC REPAIR
+        </span>
+    {% else %}
+        <span class="badge bg-warning-subtle text-warning-emphasis mono border border-warning-subtle px-3 py-2 fs-6">
+            <i class="bi bi-gear-wide-connected me-1"></i> MECHANICAL REPAIR
+        </span>
+    {% endif %}
 </div>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.department }}
+
+    <div class="row g-4">
+
+        <!-- Section 1: Customer Information -->
+        <div class="col-12 col-lg-4">
+            <div class="card ecar-card rounded-4 border-0 p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-4 pb-2 border-bottom">
+                    <div class="sidebar-user-avatar" style="width:36px;height:36px;font-size:1rem;flex-shrink:0;">
+                        <i class="bi bi-person-fill" style="font-size:1rem;"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0">Customer Information</h6>
+                        <span class="stat-label" style="font-size:0.68rem;">Client contact details</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.customer_name.id_for_label }}" class="form-label fw-semibold small">
+                        Customer Name <span class="text-danger">*</span>
+                    </label>
+                    {{ form.customer_name }}
+                    {% if form.customer_name.errors %}
+                        <div class="text-danger small mt-1">{{ form.customer_name.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.customer_phone.id_for_label }}" class="form-label fw-semibold small">
+                        Phone Number
+                    </label>
+                    {{ form.customer_phone }}
+                    {% if form.customer_phone.errors %}
+                        <div class="text-danger small mt-1">{{ form.customer_phone.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Vehicle Information -->
+        <div class="col-12 col-lg-4">
+            <div class="card ecar-card rounded-4 border-0 p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-4 pb-2 border-bottom">
+                    <div class="sidebar-user-avatar" style="width:36px;height:36px;font-size:1rem;flex-shrink:0;background:#f0fdf4;color:#15803d;border-color:#bbf7d0;">
+                        <i class="bi bi-car-front-fill" style="font-size:1rem;"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0">Vehicle Information</h6>
+                        <span class="stat-label" style="font-size:0.68rem;">Registration and model details</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.license_plate.id_for_label }}" class="form-label fw-semibold small">
+                        License Plate <span class="text-danger">*</span>
+                    </label>
+                    {{ form.license_plate }}
+                    {% if form.license_plate.errors %}
+                        <div class="text-danger small mt-1">{{ form.license_plate.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.vehicle_make.id_for_label }}" class="form-label fw-semibold small">
+                        Vehicle Make <span class="text-danger">*</span>
+                    </label>
+                    {{ form.vehicle_make }}
+                    {% if form.vehicle_make.errors %}
+                        <div class="text-danger small mt-1">{{ form.vehicle_make.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.vehicle_model.id_for_label }}" class="form-label fw-semibold small">
+                        Vehicle Model <span class="text-danger">*</span>
+                    </label>
+                    {{ form.vehicle_model }}
+                    {% if form.vehicle_model.errors %}
+                        <div class="text-danger small mt-1">{{ form.vehicle_model.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Work Information -->
+        <div class="col-12 col-lg-4">
+            <div class="card ecar-card rounded-4 border-0 p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-4 pb-2 border-bottom">
+                    <div class="sidebar-user-avatar" style="width:36px;height:36px;font-size:1rem;flex-shrink:0;background:#fef3c7;color:#b45309;border-color:#fde68a;">
+                        <i class="bi bi-tools" style="font-size:1rem;"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0">Work Details</h6>
+                        <span class="stat-label" style="font-size:0.68rem;">Issue description & technician assignment</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold small">
+                        Work Required / Issue Description <span class="text-danger">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger small mt-1">{{ form.description.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.assigned_technician.id_for_label }}" class="form-label fw-semibold small">
+                        Assign Technician
+                        <span class="badge bg-light text-muted border mono ms-1" style="font-size:0.62rem;font-weight:500;">Optional</span>
+                    </label>
+                    {{ form.assigned_technician }}
+                    {% if form.assigned_technician.errors %}
+                        <div class="text-danger small mt-1">{{ form.assigned_technician.errors|join:", " }}</div>
+                    {% endif %}
+                    <div class="form-text stat-label mt-1" style="font-size:0.7rem;">
+                        Only {{ department_display }} specialists are shown. You can assign later from the job detail page.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.row -->
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 mt-4 pt-2 justify-content-end">
+        <a href="{% url 'owner_department_jobs' department %}" class="btn btn-ecar-secondary px-4 py-2 border">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-ecar-primary px-5 py-2">
+            <i class="bi bi-check-lg me-1"></i> Register {{ department_display }} Job
+        </button>
+    </div>
+</form>
 {% endblock %}
