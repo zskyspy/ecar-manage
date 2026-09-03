@@ -1,0 +1,233 @@
+:root {
+    --bg: #ffffff;
+    --bg-2: #fafafa;
+    --bg-3: #f4f4f5;
+    --line: #e5e5e7;
+    --line-2: #d4d4d8;
+    --text: #0a0a0a;
+    --text-2: #27272a;
+    --muted: #71717a;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --grad: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background-color: var(--bg-2);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.mono, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* Glassmorphic Navbar */
+.ecar-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    transition: border-color 0.2s var(--ease);
+}
+
+.brand-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-transform: uppercase;
+}
+
+.brand-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+}
+
+/* Cards & Surfaces */
+.ecar-card {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.ecar-card:hover {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+}
+
+/* Monospace Micro-labels */
+.stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.stat-num {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    line-height: 1;
+}
+
+/* UK / European Automotive License Plate */
+.ecar-plate {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    background: #facc15;
+    color: #000000;
+    border: 1.5px solid #000000;
+    border-radius: 6px;
+    padding: 2px 9px;
+    letter-spacing: 0.06em;
+    display: inline-block;
+    font-size: 0.82rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Status Chips */
+.badge-status-pending {
+    background: #f0f9ff;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+.badge-status-in_progress {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+.badge-status-waiting_parts {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+.badge-status-completed {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+.badge-status-cancelled {
+    background: #f4f4f5;
+    color: #71717a;
+    border: 1px solid #e4e4e7;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+/* Action Buttons */
+.btn-ecar-primary {
+    background: var(--text);
+    color: #ffffff;
+    border: 1px solid var(--text);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.92rem;
+    padding: 0.55rem 1.15rem;
+    transition: all 0.15s ease;
+}
+
+.btn-ecar-primary:hover {
+    background: #27272a;
+    color: #ffffff;
+    border-color: #27272a;
+}
+
+.btn-ecar-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.92rem;
+    padding: 0.55rem 1.15rem;
+    transition: all 0.15s ease;
+}
+
+.btn-ecar-secondary:hover {
+    background: var(--bg-3);
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+/* Timeline Hairline */
+.ecar-timeline-line {
+    position: absolute;
+    top: 6px;
+    bottom: 0;
+    left: 7px;
+    width: 2px;
+    background: var(--line);
+}
+
+.ecar-timeline-node {
+    position: absolute;
+    left: 2px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 0 1.5px var(--line);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

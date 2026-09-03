@@ -236,6 +236,34 @@ Notes / decisions
 - Ran manage.py test jobs — all 57/57 tests passed on PostgreSQL
 - Verified live behavior via fast direct client verification (< 2 seconds): confirmed login, bay list, detail retrieval, status update submission, database state sync, and 404 security isolation on unassigned jobs
 
+[2026-09-03] Step 13: Polish Pass & Brand Identity (ECAR Space)
+- Full Project Rebranding:
+  * Project brand renamed across all frontend views, titles, navigation, and API health checks from "GarageFlow" to "ECAR Space"
+  * Configured STATICFILES_DIRS = [BASE_DIR / "static"] in garageapp/settings.py
+  * Copied garage logo from style/LOGO.jpg to static/img/logo.jpg
+- Implemented exact visual styling system matching portfolio reference (https://moayedportfolio.netlify.app/):
+  * Loaded Google Fonts: Inter (body/headings) and JetBrains Mono (license plates, IDs, stat labels, badges)
+  * Created static/css/ecarspace.css with CSS variables (--bg, --bg-2, --bg-3, --line, --line-2, --text, --accent, --grad)
+  * Glassmorphic sticky navbar with backdrop-filter blur (14px), rounded logo avatar, and role pills
+  * Refined automotive cards (.ecar-card) with subtle elevation, 14-16px borders, and hover micro-interactions
+  * Monospace uppercase micro-labels (.stat-label) and large bold stat counters (.stat-num)
+  * UK/European automotive license plate badges (.ecar-plate: bold JetBrains Mono, yellow background, solid dark outline)
+  * Redesigned status badge chips with soft tints and crisp borders
+  * Upgraded status progression timeline with clean hairline connector and colored node indicators
+  * Mobile-responsive layout adjustments for phone and tablet bay operations
+- Updated all templates:
+  * templates/base.html
+  * templates/registration/login.html (logo, clean form, monospace subtitles)
+  * templates/jobs/job_list.html
+  * templates/jobs/job_detail.html
+  * templates/jobs/job_create.html
+  * templates/jobs/job_edit.html
+  * templates/jobs/tech_dashboard.html
+  * templates/jobs/tech_job_detail.html
+- Updated jobs/tests.py and views.py for brand consistency ("ECAR Space")
+- Ran targeted frontend tests (27/27 passed) and direct visual/asset check (< 1 second)
+
+
 
 
 

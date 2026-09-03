@@ -32,11 +32,11 @@ def health(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1;")
         cursor.fetchone()
-    return JsonResponse({"status": "ok", "app": "GarageFlow", "database": "connected"})
+    return JsonResponse({"status": "ok", "app": "ECAR Space", "database": "connected"})
 
 
 def home(request):
-    return HttpResponse("GarageFlow is running.")
+    return HttpResponse("ECAR Space is running.")
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

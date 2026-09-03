@@ -1,41 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
 {% load crispy_forms_tags %}
 
-{% block title %}Login — GarageFlow{% endblock %}
+{% block title %}Sign In — ECAR Space{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-12 col-sm-10 col-md-8 col-lg-5">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-dark text-white text-center py-4 border-0 rounded-top-3">
-                <i class="bi bi-wrench-adjustable-circle-fill text-warning fs-1 d-block mb-2"></i>
-                <h4 class="mb-0 fw-bold">GarageFlow</h4>
-                <p class="text-light-50 small mb-0">Sign in to your workshop account</p>
+<div class="row justify-content-center mt-3 mt-md-4">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+        <div class="card ecar-card p-4 p-md-5 border-0 rounded-4">
+            <div class="text-center mb-4">
+                <img src="{% static 'img/logo.jpg' %}" alt="ECAR Space Logo" class="rounded-3 shadow-sm mb-3" style="width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--line);">
+                <h3 class="fw-bold brand-title mb-1 fs-4">ECAR SPACE</h3>
+                <p class="stat-label mb-0">Diagnostics & Workshop Portal</p>
             </div>
-            <div class="card-body p-4 p-md-5 bg-white">
-                {% if form.errors %}
-                    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        Please enter a correct username and password.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endif %}
 
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    {% if request.GET.next %}
-                        <input type="hidden" name="next" value="{{ request.GET.next }}">
-                    {% endif %}
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary py-2 fw-semibold">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer bg-light text-center py-3 border-0 small text-muted">
-                Role-based access: Owners and Technicians
+            {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show small border-0 shadow-sm rounded-3 py-2 px-3" role="alert">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    Incorrect username or password.
+                    <button type="button" class="btn-close small" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                {{ form|crispy }}
+                {% if request.GET.next %}
+                    <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {% endif %}
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-ecar-primary py-2 fw-semibold">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Sign In to Workshop
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center mt-4 pt-3 border-top">
+                <span class="stat-label" style="font-size:0.68rem;">Role-scoped access for Owners & Technicians</span>
             </div>
         </div>
     </div>

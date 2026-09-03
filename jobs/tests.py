@@ -615,7 +615,8 @@ class FrontendViewTests(TestCase):
         """GET /login/ returns 200 with a login form."""
         response = self.client.get(reverse("login"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "GarageFlow")
+        self.assertContains(response, "ECAR Space")
+
 
     def test_unauthenticated_dashboard_redirects_to_login(self):
         """Unauthenticated user visiting /dashboard/ is redirected to login."""

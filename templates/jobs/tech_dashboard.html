@@ -1,66 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}Technician Bay — GarageFlow{% endblock %}
+{% block title %}Bay View — ECAR Space{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="fw-bold mb-1"><i class="bi bi-tools text-primary me-2"></i>Technician Bay View</h2>
-        <p class="text-muted mb-0">Jobs assigned directly to your service bay.</p>
+        <h2 class="fw-bold mb-1">Technician Bay Operations</h2>
+        <p class="stat-label mb-0">Active jobs assigned to your service bay.</p>
     </div>
 </div>
 
 <div class="row g-4">
     {% for job in jobs %}
         <div class="col-12 col-md-6 col-lg-4">
-            <div class="card h-100 border-0 shadow-sm rounded-3">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
-                    <span class="badge bg-light text-dark border font-monospace fs-6">{{ job.license_plate }}</span>
-                    {% if job.status == 'completed' %}
-                        <span class="badge bg-success">Completed</span>
-                    {% elif job.status == 'in_progress' %}
-                        <span class="badge bg-warning text-dark">In Progress</span>
-                    {% elif job.status == 'waiting_parts' %}
-                        <span class="badge bg-danger">Waiting Parts</span>
-                    {% elif job.status == 'cancelled' %}
-                        <span class="badge bg-secondary">Cancelled</span>
-                    {% else %}
-                        <span class="badge bg-info text-dark">Pending</span>
-                    {% endif %}
+            <div class="card ecar-card rounded-4 border-0 h-100 d-flex flex-column">
+                <div class="p-3 d-flex justify-content-between align-items-center border-bottom" style="border-color: var(--line) !important;">
+                    <span class="ecar-plate">{{ job.license_plate }}</span>
+                    <span class="badge-status-{{ job.status }}">{{ job.get_status_display }}</span>
                 </div>
-                <div class="card-body">
-                    <h5 class="card-title fw-bold mb-1">{{ job.vehicle_make }} {{ job.vehicle_model }}</h5>
-                    <p class="text-muted small mb-3">Customer: {{ job.customer_name }} ({{ job.customer_phone|default:"No phone" }})</p>
+
+                <div class="p-4 flex-grow-1">
+                    <h5 class="fw-bold mb-1">{{ job.vehicle_make }} {{ job.vehicle_model }}</h5>
+                    <p class="text-muted small mb-3">Customer: {{ job.customer_name }} {% if job.customer_phone %}({{ job.customer_phone }}){% endif %}</p>
                     
-                    <div class="bg-light p-3 rounded-2 mb-3">
-                        <div class="small fw-semibold text-secondary text-uppercase mb-1">Issue / Work Required:</div>
+                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                        <div class="stat-label mb-1" style="font-size:0.68rem;">Work Required:</div>
                         <p class="small mb-0 text-dark">{{ job.description }}</p>
                     </div>
 
                     {% if job.status_updates.all %}
                         <div class="border-top pt-2">
-                            <div class="small fw-semibold text-muted mb-1">Latest Update:</div>
+                            <div class="stat-label mb-1" style="font-size:0.65rem;">Latest Log:</div>
                             {% with latest=job.status_updates.last %}
-                                <div class="small text-muted fst-italic">"{{ latest.note }}"</div>
+                                <div class="small text-secondary fst-italic">"{{ latest.note }}"</div>
                             {% endwith %}
                         </div>
                     {% endif %}
                 </div>
-                <div class="card-footer bg-white border-0 py-3 text-muted small d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-clock me-1"></i>{{ job.created_at|date:"M d, H:i" }}</span>
-                    <a href="{% url 'tech_job_detail' job.pk %}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-arrow-right-circle me-1"></i> View / Update
+
+                <div class="p-3 bg-light border-top rounded-bottom-4 d-flex justify-content-between align-items-center" style="border-color: var(--line) !important;">
+                    <span class="mono font-mono text-muted small" style="font-size:0.75rem;"><i class="bi bi-clock me-1"></i>{{ job.created_at|date:"M d, H:i" }}</span>
+                    <a href="{% url 'tech_job_detail' job.pk %}" class="btn btn-sm btn-ecar-primary py-1 px-3">
+                        <i class="bi bi-wrench me-1"></i> Update Bay Job
                     </a>
                 </div>
             </div>
         </div>
     {% empty %}
         <div class="col-12">
-            <div class="card border-0 shadow-sm text-center py-5 rounded-3">
+            <div class="card ecar-card rounded-4 border-0 text-center py-5">
                 <div class="card-body">
-                    <i class="bi bi-clipboard-check fs-1 text-success d-block mb-3"></i>
-                    <h4 class="fw-bold">No Assigned Jobs</h4>
-                    <p class="text-muted mb-0">You currently have no repair jobs assigned to your bay.</p>
+                    <i class="bi bi-check2-circle fs-1 text-success d-block mb-2"></i>
+                    <h5 class="fw-bold mb-1">No Pending Jobs in Bay</h5>
+                    <p class="stat-label mb-0">All assigned repair work is up to date.</p>
                 </div>
             </div>
         </div>

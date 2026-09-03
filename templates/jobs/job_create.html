@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}New Job — GarageFlow{% endblock %}
+{% block title %}New Repair Order — ECAR Space{% endblock %}
 
 {% block content %}
 <nav aria-label="breadcrumb" class="mb-4">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'owner_job_list' %}">Jobs</a></li>
-        <li class="breadcrumb-item active">New Job</li>
+    <ol class="breadcrumb stat-label" style="font-size:0.75rem;">
+        <li class="breadcrumb-item"><a href="{% url 'owner_job_list' %}" class="text-decoration-none">Jobs</a></li>
+        <li class="breadcrumb-item active text-dark">New Order</li>
     </ol>
 </nav>
 
 <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-        <div class="card border-0 shadow-sm rounded-3">
-            <div class="card-header bg-white py-3 border-0">
-                <h4 class="fw-bold mb-0"><i class="bi bi-plus-circle text-primary me-2"></i>Create New Repair Job</h4>
+        <div class="card ecar-card rounded-4 border-0 p-4 p-md-5">
+            <div class="mb-4 pb-2 border-bottom">
+                <h4 class="fw-bold mb-1">Create New Repair Job</h4>
+                <p class="stat-label mb-0">Vehicle Check-In & Service Intake</p>
             </div>
-            <div class="card-body p-4">
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    <div class="d-flex gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-lg me-1"></i> Create Job
-                        </button>
-                        <a href="{% url 'owner_job_list' %}" class="btn btn-outline-secondary px-4">
-                            <i class="bi bi-x-lg me-1"></i> Cancel
-                        </a>
-                    </div>
-                </form>
-            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex gap-2 mt-4 pt-2">
+                    <button type="submit" class="btn btn-ecar-primary px-4 py-2">
+                        <i class="bi bi-check-lg me-1"></i> Register Job
+                    </button>
+                    <a href="{% url 'owner_job_list' %}" class="btn btn-ecar-secondary px-4 py-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -1,52 +1,52 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}GarageFlow{% endblock %}</title>
+    <title>{% block title %}ECAR Space — Workshop Systems{% endblock %}</title>
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .main-content {
-            flex: 1;
-        }
-        .navbar-brand {
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-    </style>
+    
+    <!-- ECAR Space Custom Styling (Portfolio aesthetic) -->
+    <link rel="stylesheet" href="{% static 'css/ecarspace.css' %}">
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container-fluid px-4">
+    <!-- Glassmorphic Header / Navigation -->
+    <nav class="navbar navbar-expand-lg ecar-nav py-2">
+        <div class="container-fluid px-3 px-lg-4">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
-                <i class="bi bi-wrench-adjustable-circle-fill text-warning fs-4"></i>
-                <span>GarageFlow</span>
+                <img src="{% static 'img/logo.jpg' %}" alt="ECAR Space Logo" class="brand-logo shadow-sm">
+                <span class="brand-title">ECAR Space</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                     {% if user.is_authenticated %}
                         {% if user.profile.is_owner %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'owner_dashboard' %}"><i class="bi bi-speedometer2 me-1"></i>Owner Portal</a>
+                                <a class="nav-link fw-medium text-dark px-3 py-1 rounded-2" href="{% url 'owner_job_list' %}">
+                                    <i class="bi bi-speedometer2 me-1 text-muted"></i>Owner Portal
+                                </a>
                             </li>
                         {% elif user.profile.is_technician %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'tech_dashboard' %}"><i class="bi bi-tools me-1"></i>Bay View</a>
+                                <a class="nav-link fw-medium text-dark px-3 py-1 rounded-2" href="{% url 'tech_dashboard' %}">
+                                    <i class="bi bi-tools me-1 text-muted"></i>Bay View
+                                </a>
                             </li>
                         {% endif %}
                     {% endif %}
@@ -54,28 +54,28 @@
 
                 <ul class="navbar-nav ms-auto align-items-center gap-2">
                     {% if user.is_authenticated %}
-                        <li class="nav-item d-flex align-items-center gap-2 me-2">
-                            <span class="text-light small">
+                        <li class="nav-item d-flex align-items-center gap-2 me-lg-2">
+                            <span class="small fw-medium text-secondary">
                                 <i class="bi bi-person-circle me-1"></i>{{ user.username }}
                             </span>
                             {% if user.profile.is_owner %}
-                                <span class="badge bg-warning text-dark text-uppercase">Owner</span>
+                                <span class="badge bg-dark text-white mono font-mono" style="font-size:0.68rem;letter-spacing:0.06em;">OWNER</span>
                             {% elif user.profile.is_technician %}
-                                <span class="badge bg-primary text-uppercase">Technician</span>
+                                <span class="badge bg-primary text-white mono font-mono" style="font-size:0.68rem;letter-spacing:0.06em;">TECH</span>
                             {% endif %}
                         </li>
                         <li class="nav-item">
                             <form method="post" action="{% url 'logout' %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-light btn-sm">
+                                <button type="submit" class="btn btn-sm btn-ecar-secondary py-1 px-3">
                                     <i class="bi bi-box-arrow-right me-1"></i>Logout
                                 </button>
                             </form>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="btn btn-primary btn-sm" href="{% url 'login' %}">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                            <a class="btn btn-sm btn-ecar-primary" href="{% url 'login' %}">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
                             </a>
                         </li>
                     {% endif %}
@@ -88,7 +88,7 @@
     <div class="container mt-3">
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                <div class="alert alert-{{ message.tags|default:'info' }} border-0 shadow-sm alert-dismissible fade show rounded-3" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
@@ -97,14 +97,14 @@
     </div>
 
     <!-- Main Content Area -->
-    <main class="main-content container py-4">
+    <main class="container py-4 flex-grow-1">
         {% block content %}{% endblock %}
     </main>
 
     <!-- Footer -->
     <footer class="bg-white border-top py-3 text-center text-muted small mt-auto">
         <div class="container">
-            &copy; 2026 GarageFlow — Professional Workshop Operations
+            <span class="mono">ECAR Space</span> — Automotive Diagnostics & Workshop Management System &copy; 2026
         </div>
     </footer>
 
