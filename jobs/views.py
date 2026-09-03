@@ -1,11 +1,17 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect
+from django.views import View
+from django.views.generic import TemplateView
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .mixins import OwnerRequiredMixin, TechnicianRequiredMixin
 
 from .filters import JobFilter
 from .models import Job
@@ -145,6 +151,60 @@ class JobViewSet(viewsets.ModelViewSet):
         job.save(update_fields=["status", "updated_at"])
 
         return Response(StatusUpdateSerializer(status_update).data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------------
+# Template-based frontend views (Step 10)
+# ---------------------------------------------------------------------------
+
+class DashboardRedirectView(LoginRequiredMixin, View):
+    """
+    After login, redirect the user to the role-appropriate dashboard.
+    Unauthenticated users are sent to /login/ by LoginRequiredMixin.
+    """
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if hasattr(user, "profile") and user.profile.is_technician:
+            return redirect("tech_dashboard")
+        # Owners, superusers, and any other authenticated users go to owner dashboard
+        return redirect("owner_dashboard")
+
+
+class OwnerDashboardView(OwnerRequiredMixin, TemplateView):
+    """Owner portal: lists every job in the shop with status and technician info."""
+
+    template_name = "jobs/owner_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        jobs = (
+            Job.objects.all()
+            .select_related("assigned_technician", "created_by")
+            .order_by("-created_at")
+        )
+        ctx["jobs"] = jobs
+        ctx["total_jobs"] = jobs.count()
+        ctx["in_progress_jobs"] = jobs.filter(status=Job.Status.IN_PROGRESS).count()
+        ctx["unassigned_jobs"] = jobs.filter(assigned_technician__isnull=True).count()
+        ctx["completed_jobs"] = jobs.filter(status=Job.Status.COMPLETED).count()
+        return ctx
+
+
+class TechnicianDashboardView(TechnicianRequiredMixin, TemplateView):
+    """Technician bay view: lists only jobs assigned to the requesting technician."""
+
+    template_name = "jobs/tech_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["jobs"] = (
+            Job.objects.filter(assigned_technician=self.request.user)
+            .prefetch_related("status_updates")
+            .order_by("-created_at")
+        )
+        return ctx
+
 
 
 

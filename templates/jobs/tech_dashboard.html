@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Technician Bay — GarageFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-tools text-primary me-2"></i>Technician Bay View</h2>
+        <p class="text-muted mb-0">Jobs assigned directly to your service bay.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for job in jobs %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                    <span class="badge bg-light text-dark border font-monospace fs-6">{{ job.license_plate }}</span>
+                    {% if job.status == 'completed' %}
+                        <span class="badge bg-success">Completed</span>
+                    {% elif job.status == 'in_progress' %}
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                    {% elif job.status == 'waiting_parts' %}
+                        <span class="badge bg-danger">Waiting Parts</span>
+                    {% elif job.status == 'cancelled' %}
+                        <span class="badge bg-secondary">Cancelled</span>
+                    {% else %}
+                        <span class="badge bg-info text-dark">Pending</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title fw-bold mb-1">{{ job.vehicle_make }} {{ job.vehicle_model }}</h5>
+                    <p class="text-muted small mb-3">Customer: {{ job.customer_name }} ({{ job.customer_phone|default:"No phone" }})</p>
+                    
+                    <div class="bg-light p-3 rounded-2 mb-3">
+                        <div class="small fw-semibold text-secondary text-uppercase mb-1">Issue / Work Required:</div>
+                        <p class="small mb-0 text-dark">{{ job.description }}</p>
+                    </div>
+
+                    {% if job.status_updates.all %}
+                        <div class="border-top pt-2">
+                            <div class="small fw-semibold text-muted mb-1">Latest Update:</div>
+                            {% with latest=job.status_updates.last %}
+                                <div class="small text-muted fst-italic">"{{ latest.note }}"</div>
+                            {% endwith %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white border-0 py-3 text-muted small d-flex justify-content-between">
+                    <span><i class="bi bi-clock me-1"></i>{{ job.created_at|date:"M d, H:i" }}</span>
+                    <span>Job #{{ job.id }}</span>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm text-center py-5 rounded-3">
+                <div class="card-body">
+                    <i class="bi bi-clipboard-check fs-1 text-success d-block mb-3"></i>
+                    <h4 class="fw-bold">No Assigned Jobs</h4>
+                    <p class="text-muted mb-0">You currently have no repair jobs assigned to your bay.</p>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

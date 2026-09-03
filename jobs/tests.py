@@ -590,5 +590,85 @@ class RoleScopedViewTests(TestCase):
             self.assertEqual(response.data["id"], job_obj.id)
 
 
+class FrontendViewTests(TestCase):
+    """Tests for Step 10: Django template-based frontend views and auth routing."""
+
+    def setUp(self):
+        from django.test import Client
+        self.client = Client()
+
+        # Create Owner
+        self.owner = User.objects.create_user(
+            username="fe_owner", password="OwnerFE123!"
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        # Create Technician
+        self.tech = User.objects.create_user(
+            username="fe_tech", password="TechFE123!"
+        )
+        self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.save()
+
+    def test_login_page_renders(self):
+        """GET /login/ returns 200 with a login form."""
+        response = self.client.get(reverse("login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "GarageFlow")
+
+    def test_unauthenticated_dashboard_redirects_to_login(self):
+        """Unauthenticated user visiting /dashboard/ is redirected to login."""
+        response = self.client.get(reverse("dashboard"))
+        self.assertRedirects(response, "/login/?next=/dashboard/", fetch_redirect_response=False)
+
+    def test_unauthenticated_owner_portal_redirects_to_login(self):
+        """Unauthenticated user visiting /owner/ is redirected to login."""
+        response = self.client.get(reverse("owner_dashboard"))
+        self.assertRedirects(response, "/login/?next=/owner/", fetch_redirect_response=False)
+
+    def test_unauthenticated_tech_portal_redirects_to_login(self):
+        """Unauthenticated user visiting /tech/ is redirected to login."""
+        response = self.client.get(reverse("tech_dashboard"))
+        self.assertRedirects(response, "/login/?next=/tech/", fetch_redirect_response=False)
+
+    def test_owner_dashboard_redirect(self):
+        """Authenticated owner visiting /dashboard/ is redirected to /owner/."""
+        self.client.login(username="fe_owner", password="OwnerFE123!")
+        response = self.client.get(reverse("dashboard"))
+        self.assertRedirects(response, "/owner/", fetch_redirect_response=False)
+
+    def test_tech_dashboard_redirect(self):
+        """Authenticated technician visiting /dashboard/ is redirected to /tech/."""
+        self.client.login(username="fe_tech", password="TechFE123!")
+        response = self.client.get(reverse("dashboard"))
+        self.assertRedirects(response, "/tech/", fetch_redirect_response=False)
+
+    def test_owner_can_access_owner_portal(self):
+        """Owner visiting /owner/ gets 200 OK."""
+        self.client.login(username="fe_owner", password="OwnerFE123!")
+        response = self.client.get(reverse("owner_dashboard"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_tech_can_access_tech_portal(self):
+        """Technician visiting /tech/ gets 200 OK."""
+        self.client.login(username="fe_tech", password="TechFE123!")
+        response = self.client.get(reverse("tech_dashboard"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_tech_cannot_access_owner_portal(self):
+        """Technician visiting /owner/ is forbidden (403)."""
+        self.client.login(username="fe_tech", password="TechFE123!")
+        response = self.client.get(reverse("owner_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_cannot_access_tech_portal(self):
+        """Owner visiting /tech/ is forbidden (403)."""
+        self.client.login(username="fe_owner", password="OwnerFE123!")
+        response = self.client.get(reverse("tech_dashboard"))
+        self.assertEqual(response.status_code, 403)
+
+
+
 
 

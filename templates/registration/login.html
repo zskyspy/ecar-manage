@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Login — GarageFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-dark text-white text-center py-4 border-0 rounded-top-3">
+                <i class="bi bi-wrench-adjustable-circle-fill text-warning fs-1 d-block mb-2"></i>
+                <h4 class="mb-0 fw-bold">GarageFlow</h4>
+                <p class="text-light-50 small mb-0">Sign in to your workshop account</p>
+            </div>
+            <div class="card-body p-4 p-md-5 bg-white">
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show small" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Please enter a correct username and password.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    {% if request.GET.next %}
+                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                    {% endif %}
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary py-2 fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3 border-0 small text-muted">
+                Role-based access: Owners and Technicians
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
