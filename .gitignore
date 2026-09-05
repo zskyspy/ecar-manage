@@ -7,3 +7,5 @@ staticfiles/
 media/
 *.log
 .DS_Store
+cloudflared.exe
+*.pem

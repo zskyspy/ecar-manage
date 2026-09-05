@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -5,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from .models import Department, UserProfile
+from .models import Department, Job, UserProfile
 
 
 class AuthAndRoleTests(TestCase):
@@ -1362,6 +1363,138 @@ class TechnicianSettingsTests(TestCase):
         self.assertRedirects(response, reverse("tech_settings"), fetch_redirect_response=False)
         self.tech.refresh_from_db()
         self.assertEqual(self.tech.email, "updated@ecarspace.local")
+
+
+class NotificationAndPushTests(TestCase):
+    """Test push notification triggers and API endpoints."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner_notif",
+            password="OwnerPass123!",
+            email="owner@ecarspace.local",
+        )
+        self.owner.profile.role = UserProfile.Role.OWNER
+        self.owner.profile.save()
+
+        self.tech = User.objects.create_user(
+            username="tech_notif",
+            password="TechPass123!",
+            email="tech@ecarspace.local",
+        )
+        self.tech.profile.role = UserProfile.Role.TECHNICIAN
+        self.tech.profile.department = Department.ELECTRONIC
+        self.tech.profile.save()
+
+        self.job = Job.objects.create(
+            department=Department.ELECTRONIC,
+            customer_name="John Doe",
+            customer_phone="07123456789",
+            vehicle_make="BMW",
+            vehicle_model="M3",
+            vehicle_year=2021,
+            license_plate="NOTIF1",
+            description="ECU tuning issue",
+            created_by=self.owner,
+        )
+
+    def test_assign_technician_creates_notification_for_tech(self):
+        """When an owner assigns a job to a tech, a Notification is created for that tech."""
+        from .models import Notification
+        self.client.login(username="owner_notif", password="OwnerPass123!")
+        response = self.client.post(
+            reverse("owner_job_assign", kwargs={"pk": self.job.pk}),
+            {"technician": self.tech.id},
+        )
+        self.assertRedirects(response, reverse("owner_job_detail", kwargs={"pk": self.job.pk}), fetch_redirect_response=False)
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.assigned_technician, self.tech)
+
+        notif = Notification.objects.filter(recipient=self.tech).first()
+        self.assertIsNotNone(notif)
+        self.assertIn("Assigned", notif.title)
+        self.assertIn("BMW", notif.body)
+        self.assertEqual(notif.target_url, f"/tech/jobs/{self.job.pk}/")
+
+    def test_tech_job_completed_creates_notification_for_owner(self):
+        """When technician marks job completed, notification is sent to shop owner."""
+        from .models import Notification
+        self.job.assigned_technician = self.tech
+        self.job.status = Job.Status.IN_PROGRESS
+        self.job.save()
+
+        self.client.login(username="tech_notif", password="TechPass123!")
+        response = self.client.post(
+            reverse("tech_job_status_update", kwargs={"pk": self.job.pk}),
+            {"status": "completed", "note": "Calibration complete and road tested."},
+        )
+        self.assertRedirects(response, reverse("tech_job_detail", kwargs={"pk": self.job.pk}), fetch_redirect_response=False)
+
+        owner_notif = Notification.objects.filter(recipient=self.owner).first()
+        self.assertIsNotNone(owner_notif)
+        self.assertIn("Completed", owner_notif.title)
+        self.assertIn("BMW", owner_notif.body)
+        self.assertEqual(owner_notif.target_url, f"/owner/jobs/{self.job.pk}/")
+
+    def test_tech_job_in_progress_does_not_notify_owner(self):
+        """Owner is ONLY notified when job is completed, not on in-progress or waiting parts."""
+        from .models import Notification
+        self.job.assigned_technician = self.tech
+        self.job.save()
+
+        self.client.login(username="tech_notif", password="TechPass123!")
+        response = self.client.post(
+            reverse("tech_job_status_update", kwargs={"pk": self.job.pk}),
+            {"status": "in_progress", "note": "Diagnostics started."},
+        )
+        self.assertRedirects(response, reverse("tech_job_detail", kwargs={"pk": self.job.pk}), fetch_redirect_response=False)
+        self.assertEqual(Notification.objects.filter(recipient=self.owner).count(), 0)
+
+    def test_push_subscribe_api(self):
+        """Authenticated user can save a browser push subscription."""
+        from .models import PushSubscription
+        self.client.login(username="tech_notif", password="TechPass123!")
+        response = self.client.post(
+            reverse("push_subscribe"),
+            data=json.dumps({
+                "endpoint": "https://push.services.mozilla.com/v1/test-endpoint-123",
+                "keys": {
+                    "p256dh": "BMTestKeyP256dh...",
+                    "auth": "TestAuthSecret...",
+                }
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        sub = PushSubscription.objects.filter(user=self.tech).first()
+        self.assertIsNotNone(sub)
+        self.assertEqual(sub.endpoint, "https://push.services.mozilla.com/v1/test-endpoint-123")
+
+    def test_vapid_public_key_api(self):
+        """VAPID public key endpoint returns a valid key."""
+        self.client.login(username="tech_notif", password="TechPass123!")
+        response = self.client.get(reverse("vapid_public_key"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.json().get("public_key", "")) > 0)
+
+    def test_unread_notifications_api_and_marking_read(self):
+        """Unread notifications API returns list and marks records read."""
+        from .models import Notification
+        Notification.objects.create(
+            recipient=self.tech,
+            title="Test Notice",
+            body="Your bay has an update.",
+            target_url="/tech/",
+        )
+        self.client.login(username="tech_notif", password="TechPass123!")
+        response = self.client.get(reverse("unread_notifications"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data.get("notifications", [])), 1)
+        self.assertEqual(data["notifications"][0]["title"], "Test Notice")
+
+        # Verify marked as read in database
+        self.assertEqual(Notification.objects.filter(recipient=self.tech, is_read=False).count(), 0)
 
 
 

@@ -161,3 +161,44 @@ class StatusUpdate(models.Model):
         return f"Job #{self.job_id} -> {self.get_status_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
 
+class Notification(models.Model):
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    target_url = models.CharField(max_length=255, default="/")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+
+    def __str__(self):
+        return f"Notification for {self.recipient.username}: {self.title}"
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.TextField(unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Push Subscription"
+        verbose_name_plural = "Push Subscriptions"
+
+    def __str__(self):
+        return f"PushSubscription for {self.user.username} ({self.created_at.strftime('%Y-%m-%d')})"
+
+

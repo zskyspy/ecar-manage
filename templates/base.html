@@ -3,7 +3,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{% block title %}ECAR Space — Workshop Systems{% endblock %}</title>
 
     <!-- Google Fonts: Inter & JetBrains Mono -->
@@ -252,21 +255,84 @@
 
     </div>
 
+    <!-- Mobile Bottom Navigation Bar (Phone Screens < 992px) -->
+    {% if user.is_authenticated %}
+        <nav class="ecar-mobile-bottom-bar d-lg-none" aria-label="Mobile Navigation">
+            {% if user.profile.is_owner %}
+                <a href="{% url 'owner_job_list' %}" class="mobile-bottom-link {% if request.resolver_match.url_name == 'owner_job_list' or request.path == '/' or request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'owner_department_jobs' 'electronic' %}" class="mobile-bottom-link {% if department == 'electronic' or '/owner/electronic/' in request.path %}active{% endif %}">
+                    <i class="bi bi-cpu text-primary"></i>
+                    <span class="dept-tag-elect">// Elect</span>
+                </a>
+                <a href="{% url 'owner_department_job_create' 'electronic' %}" class="mobile-bottom-link mobile-bottom-cta">
+                    <div class="mobile-bottom-cta-btn">
+                        <i class="bi bi-plus-lg"></i>
+                    </div>
+                    <span>New Job</span>
+                </a>
+                <a href="{% url 'owner_department_jobs' 'mechanical' %}" class="mobile-bottom-link {% if department == 'mechanical' or '/owner/mechanical/' in request.path %}active{% endif %}">
+                    <i class="bi bi-gear-wide-connected text-warning-emphasis"></i>
+                    <span class="dept-tag-mech">// Mech</span>
+                </a>
+                <a href="{% url 'owner_technicians' %}" class="mobile-bottom-link {% if '/owner/technicians/' in request.path %}active{% endif %}">
+                    <i class="bi bi-people"></i>
+                    <span>Techs</span>
+                </a>
+            {% elif user.profile.is_technician %}
+                <a href="{% url 'tech_dashboard' %}" class="mobile-bottom-link {% if request.resolver_match.url_name == 'tech_dashboard' or '/tech/jobs' in request.path %}active{% endif %}">
+                    <i class="bi bi-tools"></i>
+                    <span>Bay View</span>
+                </a>
+                <a href="{% url 'tech_dashboard' %}" class="mobile-bottom-link">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>Refresh</span>
+                </a>
+                <a href="{% url 'tech_settings' %}" class="mobile-bottom-link {% if '/tech/settings/' in request.path %}active{% endif %}">
+                    <i class="bi bi-gear"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="javascript:void(0)" class="mobile-bottom-link text-danger" onclick="document.getElementById('mobile-bottom-logout-form').submit();">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Sign Out</span>
+                </a>
+                <form id="mobile-bottom-logout-form" method="post" action="{% url 'logout' %}" style="display:none;" hx-boost="false">
+                    {% csrf_token %}
+                </form>
+            {% endif %}
+        </nav>
+    {% endif %}
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- HTMX Configuration: CSRF Token & Seamless Loading Progress Bar -->
+    <!-- HTMX Configuration: CSRF Token & Seamless Loading Progress Bar & Mobile Auto-Dismiss -->
     <script>
         document.body.addEventListener('htmx:configRequest', function(evt) {
             evt.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
         });
+
+        function closeMobileOffcanvas() {
+            const offcanvasEl = document.getElementById('sidebarOffcanvas');
+            if (offcanvasEl && window.innerWidth < 992) {
+                const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                if (bsOffcanvas) {
+                    bsOffcanvas.hide();
+                }
+            }
+        }
+
         document.addEventListener('htmx:beforeRequest', function() {
+            closeMobileOffcanvas();
             const bar = document.getElementById('htmx-progress-bar');
             if (bar) {
                 bar.style.width = '70%';
                 bar.style.opacity = '1';
             }
         });
+
         document.addEventListener('htmx:afterOnLoad', function() {
             const bar = document.getElementById('htmx-progress-bar');
             if (bar) {
@@ -277,7 +343,50 @@
                 }, 200);
             }
         });
+
+        // Ensure direct taps on sidebar links dismiss offcanvas drawer smoothly
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarLinks = document.querySelectorAll('#sidebarOffcanvas a');
+            sidebarLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    closeMobileOffcanvas();
+                });
+            });
+        });
     </script>
+
+    {% if user.is_authenticated %}
+    <!-- Push Notifications Sign-In Prompt Modal -->
+    <div class="modal fade" id="pushPromptModal" tabindex="-1" aria-labelledby="pushPromptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="p-4 text-center">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px; background: #e0f2fe; color: #0284c7;">
+                        <i class="bi bi-bell-fill fs-3"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Enable Push Notifications</h5>
+                    <p class="text-muted small mb-4">
+                        {% if user.profile.is_owner %}
+                            Get real-time push alerts on your phone or computer the instant a technician completes a repair job.
+                        {% else %}
+                            Get real-time push alerts the instant a new car is assigned to your repair bay.
+                        {% endif %}
+                    </p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-ecar-primary py-2 fw-semibold" onclick="enablePushNotifications()">
+                            <i class="bi bi-bell me-1"></i> Enable Push Notifications
+                        </button>
+                        <button type="button" class="btn btn-light text-muted border py-2" data-bs-dismiss="modal">
+                            Not Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

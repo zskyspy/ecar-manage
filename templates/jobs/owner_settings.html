@@ -55,5 +55,36 @@
         </div>
     </div>
 </div>
+
+<!-- Push Notifications Configuration Card -->
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card ecar-card rounded-4 border-0 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bell text-primary fs-5"></i>
+                    <div>
+                        <h5 class="fw-bold mb-0">Push Notifications</h5>
+                        <span class="stat-label" style="font-size:0.68rem;">Real-Time Browser & Device Alerts</span>
+                    </div>
+                </div>
+                <span id="pushStatusBadge" class="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                    <i class="bi bi-bell-slash me-1"></i> Checking...
+                </span>
+            </div>
+            <p class="text-muted small mb-3">
+                Receive instant push notifications on this computer or phone whenever a technician marks a repair job as <strong>Completed</strong>.
+            </p>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button id="btnTogglePush" type="button" class="btn btn-ecar-primary btn-sm" onclick="enablePushNotifications()">
+                    <i class="bi bi-bell me-1"></i> Enable Push Notifications
+                </button>
+                <button id="btnTestPush" type="button" class="btn btn-outline-secondary btn-sm" style="display:none;" onclick="testPushNotification()">
+                    <i class="bi bi-send me-1"></i> Send Test Notification
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 

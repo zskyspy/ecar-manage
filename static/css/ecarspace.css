@@ -577,3 +577,162 @@ body {
     transition: width 0.25s ease, opacity 0.25s ease;
     pointer-events: none;
 }
+
+/* ==========================================================================
+   Mobile-Friendly Phone Optimizations (< 992px & < 576px)
+   ========================================================================== */
+
+/* Mobile Bottom Navigation Bar */
+.ecar-mobile-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0.4rem 0.25rem;
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.mobile-bottom-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.25rem 0.4rem;
+    border-radius: 8px;
+    transition: color 0.15s ease, transform 0.1s ease;
+    min-width: 54px;
+}
+
+.mobile-bottom-link i {
+    font-size: 1.25rem;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
+.mobile-bottom-link:active {
+    transform: scale(0.92);
+}
+
+.mobile-bottom-link.active {
+    color: #0284c7;
+    font-weight: 700;
+}
+
+.mobile-bottom-link.active i {
+    color: #0284c7;
+}
+
+/* Elevated New Job Action in Mobile Bottom Bar */
+.mobile-bottom-cta {
+    position: relative;
+    top: -8px;
+}
+
+.mobile-bottom-cta-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    margin-bottom: 2px;
+    transition: transform 0.15s ease;
+}
+
+.mobile-bottom-cta-btn i {
+    font-size: 1.25rem;
+    color: #ffffff !important;
+    margin-bottom: 0;
+}
+
+.mobile-bottom-cta:active .mobile-bottom-cta-btn {
+    transform: scale(0.9);
+}
+
+/* Ensure body content doesn't get covered by mobile bottom bar */
+@media (max-width: 991.98px) {
+    .ecar-main-content {
+        padding-bottom: 84px !important;
+    }
+
+    /* Prevent annoying iOS Safari zoom on input focus */
+    input, select, textarea, .form-control, .form-select {
+        font-size: 16px !important;
+    }
+
+    /* Touch-friendly min heights */
+    .btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Notifications dropdown positioning on small screens */
+    .dropdown-menu[aria-labelledby="notificationsDropdown"] {
+        max-width: calc(100vw - 24px) !important;
+        right: -8px !important;
+    }
+
+    /* Tables on mobile */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        border-radius: 12px;
+    }
+
+    .table th, .table td {
+        white-space: nowrap;
+    }
+}
+
+/* Compact padding and spacing on phone screens (< 576px) */
+@media (max-width: 575.98px) {
+    .card.ecar-card {
+        padding: 1rem !important;
+        border-radius: 16px !important;
+    }
+
+    .stat-num {
+        font-size: 1.45rem !important;
+    }
+
+    .stat-label {
+        font-size: 0.68rem !important;
+    }
+
+    .ecar-mobile-bar {
+        padding: 0.6rem 0.85rem;
+    }
+
+    .ecar-mobile-bar .brand-logo {
+        width: 28px;
+        height: 28px;
+    }
+
+    .ecar-mobile-bar .sidebar-brand-text {
+        font-size: 1.15rem;
+    }
+
+    /* Job cards spacing */
+    .g-4 {
+        --bs-gutter-y: 1rem;
+        --bs-gutter-x: 0.75rem;
+    }
+}
+

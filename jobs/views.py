@@ -125,6 +125,9 @@ class JobViewSet(viewsets.ModelViewSet):
         else:
             job.assigned_technician_id = tech_id
         job.save()
+        if job.assigned_technician:
+            from .services import notify_technician_assignment
+            notify_technician_assignment(job, job.assigned_technician)
         return Response(JobSerializer(job).data, status=status.HTTP_200_OK)
 
 
@@ -156,6 +159,10 @@ class JobViewSet(viewsets.ModelViewSet):
         # Update parent Job status
         job.status = status_update.status
         job.save(update_fields=["status", "updated_at"])
+
+        if status_update.status == "completed":
+            from .services import notify_owner_job_completed
+            notify_owner_job_completed(job, request.user)
 
         return Response(StatusUpdateSerializer(status_update).data, status=status.HTTP_201_CREATED)
 
@@ -405,6 +412,8 @@ class DepartmentJobCreateView(OwnerRequiredMixin, View):
             job.created_by = request.user
             job.save()
             if job.assigned_technician:
+                from .services import notify_technician_assignment
+                notify_technician_assignment(job, job.assigned_technician)
                 messages.success(
                     request,
                     f"Job #{job.id} registered under {job.get_department_display()} and assigned to {job.assigned_technician.username}.",
@@ -478,6 +487,9 @@ class OwnerAssignTechnicianView(OwnerRequiredMixin, View):
             tech = form.cleaned_data["technician"]
             job.assigned_technician = tech
             job.save(update_fields=["assigned_technician", "updated_at"])
+            if tech:
+                from .services import notify_technician_assignment
+                notify_technician_assignment(job, tech)
             name = tech.username if tech else "None"
             messages.success(request, f"Technician updated to: {name}.")
         else:
@@ -538,6 +550,10 @@ class TechPostStatusUpdateView(TechnicianRequiredMixin, View):
 
             job.status = new_status
             job.save(update_fields=["status", "updated_at"])
+
+            if new_status == "completed":
+                from .services import notify_owner_job_completed
+                notify_owner_job_completed(job, request.user)
 
             messages.success(request, f"Status updated to {job.get_status_display()}.")
             return redirect("tech_job_detail", pk=job.pk)
@@ -853,6 +869,82 @@ class TechnicianPasswordChangeView(TechnicianRequiredMixin, View):
             for error in errors:
                 messages.error(request, f"{field.capitalize()}: {error}")
         return redirect("tech_settings")
+
+
+# ---------------------------------------------------------------------------
+# Push Notification API Endpoints
+# ---------------------------------------------------------------------------
+
+class VapidPublicKeyView(APIView):
+    """Return the VAPID public key for browser push subscription."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .services import get_vapid_public_key
+        return Response({"public_key": get_vapid_public_key()})
+
+
+class PushSubscribeView(APIView):
+    """Save or update a browser push subscription for the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        endpoint = request.data.get("endpoint")
+        keys = request.data.get("keys", {})
+        p256dh = keys.get("p256dh", "")
+        auth = keys.get("auth", "")
+        if not endpoint or not p256dh or not auth:
+            return Response({"error": "Invalid subscription data."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .models import PushSubscription
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={"user": request.user, "p256dh": p256dh, "auth": auth}
+        )
+        return Response({"status": "subscribed", "message": "Push notifications enabled successfully."})
+
+
+class PushStatusView(APIView):
+    """Check if the user has active push subscriptions."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import PushSubscription
+        count = PushSubscription.objects.filter(user=request.user).count()
+        return Response({"subscribed": count > 0, "devices_count": count})
+
+
+class PushTestNotificationView(APIView):
+    """Send a test push notification to the logged-in user."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from .services import send_push_notification
+        notif = send_push_notification(
+            user=request.user,
+            title="🔔 ECAR Space Alert",
+            body="Push notifications are active and delivering to your device!",
+            target_url="/"
+        )
+        return Response({"status": "sent", "notification_id": notif.id})
+
+
+class UnreadNotificationsView(APIView):
+    """Return unread notifications for the active user session and mark them as read."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import Notification
+        notifs = Notification.objects.filter(recipient=request.user, is_read=False)
+        data = [{
+            "id": n.id,
+            "title": n.title,
+            "body": n.body,
+            "url": n.target_url,
+            "created_at": n.created_at.strftime("%H:%M"),
+        } for n in notifs]
+        notifs.update(is_read=True)
+        return Response({"notifications": data})
 
 
 

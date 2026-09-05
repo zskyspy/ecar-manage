@@ -66,7 +66,13 @@ urlpatterns = [
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/auth/me/", views.CurrentUserView.as_view(), name="current_user"),
     path("api/auth/test-owner/", views.OwnerOnlyTestView.as_view(), name="test_owner_role"),
-    path("api/auth/test-technician/", views.TechnicianOnlyTestView.as_view(), name="test_technician_role"),
+    # ---- Push Notification Endpoints ----
+    path("serviceworker.js", views.TemplateView.as_view(template_name="serviceworker.js", content_type="application/javascript"), name="serviceworker"),
+    path("api/notifications/vapid-key/", views.VapidPublicKeyView.as_view(), name="vapid_public_key"),
+    path("api/notifications/subscribe/", views.PushSubscribeView.as_view(), name="push_subscribe"),
+    path("api/notifications/status/", views.PushStatusView.as_view(), name="push_status"),
+    path("api/notifications/test/", views.PushTestNotificationView.as_view(), name="push_test"),
+    path("api/notifications/unread/", views.UnreadNotificationsView.as_view(), name="unread_notifications"),
 ]
 
 
