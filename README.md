@@ -1,82 +1,62 @@
-﻿# 🚗 ECAR Space — Workshop Management System
+﻿# ECAR Space - Workshop Management System
 
-> High-performance automotive workshop management system engineered for **Electronic Repair** and **Mechanical Repair** facilities. Features role-based workflows, live job boards, real-time HTMX filtering, production-grade serving, and mobile-first responsive interfaces.
+A web-based workshop management application built for automotive repair shops, specifically designed to handle separate workflows for electronic diagnostics/repairs and mechanical jobs. 
 
----
-
-## ✨ Features
-
-- 🏢 **Multi-Department Separation**: Complete isolation between **Electronic Repair** (`// Elect`) and **Mechanical Repair** (`// Mech`) workflows.
-- 👥 **Role-Based Access Control**:
-  - **Owner / Manager Dashboard**: Full workshop overview, revenue tracking, status updates, technician assignment, job intake, and staff management.
-  - **Technician Bay**: Streamlined interface for technicians to view assigned vehicles, log diagnostic work, update repair statuses, and add notes.
-- ⚡ **Seamless SPA-Style UX**: Powered by **HTMX** for instant search, live status filtering, and smooth navigation without full-page reloads.
-- 📱 **Mobile & Tablet Optimized**:
-  - Bottom navigation bar tailored for mobile screens.
-  - Tap-to-call client phone shortcuts.
-  - Auto-dismissing drawer navigation and touch-optimized touch targets.
-- 🚀 **High-Performance Production Stack**:
-  - **Waitress WSGI Server**: Multi-threaded request handling (8 threads).
-  - **WhiteNoise**: Automated static asset compression and caching.
-  - **PostgreSQL**: Robust relational database storage.
-- 🌐 **Remote Access & Cloudflare Tunneling**: Zero-config SSL tunnels allowing workshop owners and technicians to access the application securely on mobile devices from anywhere.
+The goal of this project was to replace messy paperwork and disconnected chat messages with a centralized system where owners can track revenue and job intake, while technicians get a dedicated, distraction-free board for their assigned work.
 
 ---
 
-## 🛠️ Tech Stack
+## What It Does
 
-- **Backend**: Python 3.12+, Django 5+, Django REST Framework
-- **Frontend**: Bootstrap 5, Bootstrap Icons, HTMX, JetBrains Mono & Inter typography
-- **Database**: PostgreSQL (or SQLite for quick local development)
-- **Web Server**: Waitress (Production WSGI) + WhiteNoise
-- **Tunneling / Networking**: Cloudflare Tunnel (`cloudflared`)
+- **Department Isolation**: Distinct workflows for Electronic Repair (`// Elect`) and Mechanical Repair (`// Mech`). Technicians in one department only see what is relevant to their bay.
+- **Owner Dashboard**: Live overview of workshop activity, active repairs, revenue stats, technician assignment, and job creation.
+- **Technician Bay View**: Clean view for technicians to track assigned vehicles, update repair progress (Pending, In Progress, Waiting for Parts, Completed), and add notes.
+- **Fast Navigation & Search**: Uses HTMX for instant vehicle/customer search, tab filtering, and page transitions without full browser reloads.
+- **Mobile Friendly**: Designed to be used on phones and tablets in the shop, with a bottom navigation bar, tap-to-call buttons for customer numbers, and touch-optimized controls.
+- **Self-Hosted & Production Ready**: Set up to run locally on the workshop network via multi-threaded Waitress and WhiteNoise, with Cloudflare tunnel scripts for secure remote access on phones outside the shop.
 
 ---
 
-## 📂 Project Structure
+## Tech Stack
+
+- **Backend**: Python, Django, Django REST Framework
+- **Frontend**: Bootstrap 5, HTMX, Bootstrap Icons
+- **Database**: PostgreSQL (can also run on SQLite for local testing)
+- **Web Server**: Waitress (WSGI), WhiteNoise
+- **Remote Access**: Cloudflare Tunnel (`cloudflared`)
+
+---
+
+## Project Layout
 
 ```text
 ECAR Space/
-├── garageapp/               # Django core project configuration & settings
-├── jobs/                    # Workshop jobs, departments, and user profiles
+├── garageapp/               # Django project settings and WSGI configuration
+├── jobs/                    # Core workshop app (models, views, forms, API)
 │   ├── migrations/          # Database migrations
 │   ├── models.py            # Job, Profile, StatusUpdate, Department models
-│   ├── views.py             # Owner & Technician views, HTMX partials & APIs
-│   ├── services.py          # Notification & event dispatch services
-│   └── urls.py              # Application routing
-├── static/
-│   ├── css/ecarspace.css    # Custom dark/light styling & mobile layout rules
-│   ├── js/                  # Real-time and push notification scripts
-│   └── img/                 # Workshop branding & logo assets
-├── templates/               # Django HTML templates (Boosted with HTMX)
-│   ├── jobs/                # Job boards, detail views, and settings
-│   └── base.html            # Main application layout & responsive navigation
-├── start_dev_offline.bat    # Quick offline dev launcher
-├── start_live_server.bat    # Fast multi-threaded Waitress production launcher
-├── start_online_tunnel.bat  # Cloudflare HTTPS tunnel launcher
-├── requirements.txt         # Python package dependencies
-└── manage.py                # Django CLI entrypoint
+│   ├── views.py             # Owner and technician views, HTMX endpoints
+│   └── urls.py              # URL routing
+├── static/                  # CSS, icons, images, and client scripts
+├── templates/               # HTML templates (base layout, job views, settings)
+├── start_dev_offline.bat    # Quick local dev server launcher
+├── start_live_server.bat    # Production Waitress launcher (8 threads)
+├── start_online_tunnel.bat  # Cloudflare tunnel launcher for remote phone access
+├── requirements.txt         # Dependencies
+└── manage.py
 ```
 
 ---
 
-## 🚀 Getting Started
+## Setup & Local Installation
 
-### 1. Prerequisites
-
-- **Python 3.11+**
-- **PostgreSQL** (or SQLite)
-- **Git**
-
-### 2. Clone the Repository
-
+### 1. Clone the repo
 ```bash
 git clone https://github.com/zskyspy/ecar-manage.git
 cd ecar-manage
 ```
 
-### 3. Setup Virtual Environment
-
+### 2. Create and activate a virtual environment
 ```bash
 # Windows
 python -m venv venv
@@ -87,33 +67,29 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 4. Install Dependencies
-
+### 3. Install packages
 ```bash
 pip install -r requirements.txt
 pip install waitress whitenoise pywebpush
 ```
 
-### 5. Environment Variables
-
-Create a `.env` file in the root directory (based on the sample below):
-
+### 4. Configure environment variables
+Create a `.env` file in the project root:
 ```env
 DEBUG=True
-SECRET_KEY=your-secure-secret-key
+SECRET_KEY=your-secret-key-here
 ALLOWED_HOSTS=localhost,127.0.0.1,*.trycloudflare.com,*
 CSRF_TRUSTED_ORIGINS=https://*.trycloudflare.com,http://localhost:8000
 
-# PostgreSQL Configuration
+# Database
 DB_NAME=garageflow
 DB_USER=postgres
-DB_PASSWORD=your_postgres_password
+DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=5432
 ```
 
-### 6. Database Setup & Migrations
-
+### 5. Apply migrations and create an admin
 ```bash
 python manage.py migrate
 python manage.py createsuperuser
@@ -121,37 +97,29 @@ python manage.py createsuperuser
 
 ---
 
-## 🏃 Running the Application
+## How to Run
 
-### Option A: Fast Production Mode (Recommended)
-Double-click `start_live_server.bat` or run:
+### Live Server Mode (Fast multi-threaded server)
+Double click `start_live_server.bat` or run:
 ```bash
 python manage.py collectstatic --noinput
 .\venv\Scripts\waitress-serve.exe --host=0.0.0.0 --port=8000 --threads=8 garageapp.wsgi:application
 ```
-Access the application at `http://localhost:8000` (or `http://<YOUR_LOCAL_IP>:8000` on your workshop Wi-Fi network).
+Then open `http://localhost:8000` or use your computer's local network IP on your phone.
 
-### Option B: Standard Development Mode
-Double-click `start_dev_offline.bat` or run:
+### Standard Dev Mode
+Double click `start_dev_offline.bat` or run:
 ```bash
 python manage.py runserver 0.0.0.0:8000
 ```
 
-### Option C: Remote Online Access (Cloudflare Tunnel)
-Double-click `start_online_tunnel.bat` to spin up a secure, public HTTPS URL accessible on any mobile device worldwide without opening router ports.
+### Remote Access (Cloudflare Tunnel)
+Double click `start_online_tunnel.bat` to expose the local server over a secure HTTPS link, so you can open the app on your phone even when outside the shop Wi-Fi.
 
 ---
 
-## 🔒 User Roles & Workflow
+## User Roles
 
-| Role | Access Level | Key Capabilities |
-| :--- | :--- | :--- |
-| **Workshop Owner** | Full Management | View workshop revenue, assign technicians, inspect jobs across departments, manage settings. |
-| **Technician (Electronics)** | Department Scoped | Access assigned ECU/electronics repair jobs, log real-time progress, submit diagnostic updates. |
-| **Technician (Mechanical)** | Department Scoped | Access assigned engine/mechanical overhaul jobs, update job lifecycle. |
-
----
-
-## 📄 License
-
-This project is proprietary and maintained for **ECAR Space Workshop Systems**. All rights reserved.
+- **Owner**: Full access across both departments, revenue numbers, job assignments, and settings.
+- **Electronics Technician**: Only sees electronic diagnostic and repair jobs assigned to them.
+- **Mechanical Technician**: Only sees mechanical and maintenance jobs assigned to them.
