@@ -1,4 +1,4 @@
-﻿# ECAR Space - Workshop Management System
+﻿# ECAR Manage - Workshop Management System
 
 A web-based workshop management application built for automotive repair shops, specifically designed to handle separate workflows for electronic diagnostics/repairs and mechanical jobs. 
 
